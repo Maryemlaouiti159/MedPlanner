@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Requests;
+
+use Illuminate\Contracts\Validation\ValidationRule;
+use Illuminate\Foundation\Http\FormRequest;
+
+class CreateSecretaryRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name'  => ['required', 'string', 'max:255'],
+            'email'      => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'phone'      => ['nullable', 'string', 'max:20'],
+            'doctor_id'  => ['required', 'exists:doctors,id', 'unique:secretaries,doctor_id'],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'doctor_id.unique' => 'Ce médecin a déjà une secrétaire assignée.',
+        ];
+    }
+}
