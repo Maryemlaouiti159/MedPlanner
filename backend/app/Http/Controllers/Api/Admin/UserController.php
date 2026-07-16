@@ -18,8 +18,14 @@ class UserController extends Controller
 
     public function index(Request $request)
     {
-        $filters = $request->only(['role', 'search', 'is_active', 'per_page']);
-
+$filters = $request->only([
+    'role',
+    'search',
+    'is_active',
+    'per_page',
+    'sort_by',
+    'sort_order',
+]);
         return response()->json($this->userRepository->all($filters));
     }
 

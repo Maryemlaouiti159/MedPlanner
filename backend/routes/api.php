@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\SecretaryController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\SpecialtyController;
+use App\Http\Controllers\Api\PublicController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -15,8 +16,12 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/verify-reset-code', [AuthController::class, 'verifyResetCode']);
-
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+// 👇 Déplacées ici, en dehors de tout groupe protégé
+Route::get('/public/stats', [PublicController::class, 'stats']);
+Route::get('/public/featured-doctors', [PublicController::class, 'featuredDoctors']);
+
 // Routes protégées (nécessitent un token valide)
 Route::middleware(['auth:sanctum', 'force.password.change'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -26,11 +31,11 @@ Route::middleware(['auth:sanctum', 'force.password.change'])->group(function () 
 
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::apiResource('doctors', DoctorController::class);
-Route::apiResource('specialties', SpecialtyController::class)->only(['index', 'store', 'update', 'destroy']);
-Route::apiResource('secretaries', SecretaryController::class)->only(['index', 'update', 'destroy']);
+        Route::apiResource('specialties', SpecialtyController::class)->only(['index', 'store', 'update', 'destroy']);
+        Route::apiResource('secretaries', SecretaryController::class)->only(['index', 'update', 'destroy']);
         Route::get('/stats', [AdminDashboardController::class, 'stats']);
 
-        Route::get('/users', [AdminUserController::class, 'index']);    
+        Route::get('/users', [AdminUserController::class, 'index']);
         Route::post('/users', [AdminUserController::class, 'store']);
         Route::get('/users/{user}', [AdminUserController::class, 'show']);
         Route::put('/users/{user}', [AdminUserController::class, 'update']);

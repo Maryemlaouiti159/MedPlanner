@@ -30,8 +30,12 @@ class UserRepository implements UserRepositoryInterface
             $query->where('is_active', $filters['is_active']);
         }
 
-        return $query->latest()->paginate($filters['per_page'] ?? 15);
-    }
+$sortBy = $filters['sort_by'] ?? 'created_at';
+$sortOrder = $filters['sort_order'] ?? 'desc';
+
+$query->orderBy($sortBy, $sortOrder);
+
+return $query->paginate($filters['per_page'] ?? 15);    }
 
     public function find(int $id): User
     {
