@@ -11,6 +11,8 @@ use App\Repositories\Contracts\DoctorRepositoryInterface;
 use App\Repositories\SecretaryRepository;
 use App\Repositories\Contracts\UserRepositoryInterface;
 use App\Repositories\UserRepository;
+use App\Repositories\Contracts\AvailabilityRepositoryInterface;
+use App\Repositories\AvailabilityRepository;
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -19,7 +21,8 @@ class RepositoryServiceProvider extends ServiceProvider
         $this->app->bind(AuthRepositoryInterface::class, AuthRepository::class);
                 $this->app->bind(DoctorRepositoryInterface::class, DoctorRepository::class);
         $this->app->bind(SecretaryRepositoryInterface::class, SecretaryRepository::class); 
-                $this->app->bind(UserRepositoryInterface::class, UserRepository::class); // 👈 ajouté
+                $this->app->bind(UserRepositoryInterface::class, UserRepository::class); 
+$this->app->bind(AvailabilityRepositoryInterface::class, AvailabilityRepository::class);
 
 
     }

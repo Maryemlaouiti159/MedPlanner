@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\SpecialtyController;
 use App\Http\Controllers\Api\PublicController;
+use App\Http\Controllers\Api\Doctor\AvailabilityController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -43,4 +44,10 @@ Route::middleware(['auth:sanctum', 'force.password.change'])->group(function () 
         Route::patch('/users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus']);
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
     });
+    // Dans le groupe auth:sanctum, en dehors du groupe role:admin :
+Route::middleware('role:doctor')->prefix('doctor')->group(function () {
+    Route::get('/availabilities', [AvailabilityController::class, 'index']);
+    Route::post('/availabilities', [AvailabilityController::class, 'store']);
+    Route::delete('/availabilities/{availability}', [AvailabilityController::class, 'destroy']);
+});
 });
