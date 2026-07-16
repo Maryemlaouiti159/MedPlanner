@@ -3080,3 +3080,114 @@ textarea.form-input {
 .profile-back:hover {
   border-color: var(--accent);
 }
+/* ===== AVAILABILITIES PAGE ===== */
+.availability-form-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.availability-form-card h2 {
+  font-family: var(--heading);
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 16px;
+}
+
+.availability-form-row {
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.availability-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.availability-form-field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.availability-form-field input {
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  font-family: var(--sans);
+  color: var(--text-h);
+  background: var(--input-bg);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.availability-form-field input:focus {
+  border-color: var(--accent);
+  background: var(--bg);
+}
+
+.availability-group {
+  margin-bottom: 24px;
+}
+
+.availability-group-date {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.availability-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.availability-slot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-h);
+}
+
+.availability-slot.booked {
+  background: var(--success-bg);
+  border-color: var(--success);
+  color: var(--success);
+}
+
+.availability-slot-remove {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.availability-slot-remove:hover {
+  opacity: 0.8;
+}

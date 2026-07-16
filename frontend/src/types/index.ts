@@ -132,7 +132,22 @@ export interface CreateUserData {
   role: 'patient' | 'admin';
   is_active?: boolean;
 }
+export interface Availability {
+  id: number;
+  doctor_id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_booked: boolean;
+  created_at: string;
+  updated_at: string;
+}
 
+export interface CreateAvailabilityData {
+  date: string;
+  start_time: string;
+  end_time: string;
+}
 export interface CreateDoctorData {
   first_name: string;
   last_name: string;

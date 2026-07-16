@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Availabilities from './pages/doctor/Availabilities';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
 import UsersList from './pages/admin/UsersList';
@@ -47,6 +48,14 @@ function App() {
           <Route
   path="/admin/specialties"
   element={<ProtectedRoute allowedRoles={['admin']}><SpecialtiesList /></ProtectedRoute>}
+/>
+<Route
+  path="/availabilities"
+  element={
+    <ProtectedRoute allowedRoles={['doctor']}>
+      <Availabilities />
+    </ProtectedRoute>
+  }
 />
 <Route
   path="/admin/users/:id"
