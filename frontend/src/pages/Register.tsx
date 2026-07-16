@@ -6,8 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import type { RegisterData, ApiErrorResponse } from '../types';
 import anypliLogo from '../assets/anypli-logo.png';
 import medplannerIcon from '../assets/medplanner-icon.svg';
+
 export default function Register() {
   const { register } = useAuth();
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState<RegisterData>({
     first_name: '',

@@ -1,41 +1,287 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { adminUsersApi } from '../../api/adminUsers';
+import { fetchNotificationsForRole } from '../../api/notifications';
+import type { User, AppNotification } from '../../types';
+import { useTheme } from '../../context/ThemeContext';
 
 type TopbarProps = {
   toggleSidebar: () => void;
 };
 
+const SEARCH_PLACEHOLDER: Record<string, string> = {
+  admin: 'Rechercher un utilisateur par nom ou email...',
+  doctor: 'Rechercher un patient...',
+  secretary: 'Rechercher un patient ou un rendez-vous...',
+  patient: 'Rechercher un médecin, spécialité...',
+};
+
+const ROLE_LABELS: Record<string, string> = {
+  patient: 'Patient', doctor: 'Médecin', secretary: 'Secrétaire', admin: 'Administrateur',
+};
+
+function getLastSeenKey(userId: number) {
+  return `notif_last_seen_id_${userId}`;
+}
+
 export default function Topbar({ toggleSidebar }: TopbarProps) {
-      const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { theme, setTheme } = useTheme();
+const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const [search, setSearch] = useState('');
+  const [results, setResults] = useState<User[]>([]);
+  const [showResults, setShowResults] = useState(false);
+
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [notifs, setNotifs] = useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const [showAvatarMenu, setShowAvatarMenu] = useState(false);
+
+  const searchRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const avatarRef = useRef<HTMLDivElement>(null);
+
   const initials = user ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : '';
+  const role = user?.role ?? 'patient';
 
+  const runSearch = useCallback((query: string) => {
+    if (query.trim().length < 2 || role !== 'admin') {
+      setResults([]);
+      return;
+    }
+    adminUsersApi.list({ search: query, page: 1 })
+      .then((res) => setResults(res.data.data.slice(0, 6)))
+      .catch(() => setResults([]));
+  }, [role]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => runSearch(search), 350);
+    return () => clearTimeout(timeout);
+  }, [search, runSearch]);
+
+  // Charge les notifications au montage ET vérifie combien sont nouvelles depuis la dernière lecture
+  const loadNotifications = useCallback(() => {
+    if (!user) return;
+
+    fetchNotificationsForRole(user.role).then((data) => {
+      setNotifs(data);
+
+      const lastSeenId = localStorage.getItem(getLastSeenKey(user.id));
+      if (!lastSeenId) {
+        // Première visite : tout est considéré non lu
+        setUnreadCount(data.length);
+      } else {
+        // Compte combien de notifs ont un id "après" le dernier vu
+        const lastSeenIndex = data.findIndex((n) => String(n.id) === lastSeenId);
+        setUnreadCount(lastSeenIndex === -1 ? data.length : lastSeenIndex);
+      }
+    }).catch(() => {});
+  }, [user]);
+
+  useEffect(() => {
+    loadNotifications();
+    // Rafraîchit périodiquement pour détecter une nouvelle notification (toutes les 60s)
+    const interval = setInterval(loadNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
+
+  const handleOpenNotifs = () => {
+    const next = !showNotifs;
+    setShowNotifs(next);
+
+    if (next && user && notifs.length > 0) {
+      // Marque tout comme lu : mémorise l'id de la notif la plus récente
+      localStorage.setItem(getLastSeenKey(user.id), String(notifs[0].id));
+      setUnreadCount(0);
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowResults(false);
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setShowNotifs(false);
+      if (avatarRef.current && !avatarRef.current.contains(e.target as Node)) setShowAvatarMenu(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+const handleSelectResult = (u: User) => {
+  setShowResults(false);
+  setSearch('');
+  navigate(`/admin/users/${u.id}`);
+};
+ 
+
+  if (!user) return null;
+const confirmLogout = async () => {
+  setShowLogoutModal(false);
+  await logout();
+  navigate('/login');
+};
   return (
-   <header className="app-topbar">
-  <button
-    className="app-topbar-menu"
-    onClick={toggleSidebar}
-  >
-    ☰
-  </button>
+    <header className="app-topbar">
+      <button className="app-topbar-menu" onClick={toggleSidebar}>☰</button>
 
-  <div className="app-topbar-search">
-        <span>🔍</span>
-        <input
-          type="text"
-          placeholder="Rechercher un médecin, spécialité..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      <div className="topbar-search-wrapper" ref={searchRef}>
+        <div className="app-topbar-search">
+          <span>🔍</span>
+          <input
+            type="text"
+            placeholder={SEARCH_PLACEHOLDER[role] || 'Rechercher...'}
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setShowResults(true); }}
+            onFocus={() => setShowResults(true)}
+          />
+        </div>
+
+        {showResults && role === 'admin' && search.trim().length >= 2 && (
+          <div className="search-dropdown">
+            {results.length === 0 ? (
+              <div className="search-empty">Aucun résultat pour "{search}"</div>
+            ) : (
+              results.map((u) => (
+                <div key={u.id} className="search-result-item" onClick={() => handleSelectResult(u)}>
+                  <div className="search-result-avatar">{u.first_name[0]}{u.last_name[0]}</div>
+                  <div className="search-result-info">
+                    <p>{u.first_name} {u.last_name}</p>
+                    <span>{ROLE_LABELS[u.role]} · {u.email}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
 
       <div className="app-topbar-actions">
-        <button className="app-topbar-bell">
-          🔔
-          <span className="app-topbar-dot" />
-        </button>
-        <div className="app-topbar-avatar">{initials}</div>
+        <div className="notif-wrapper" ref={notifRef}>
+          <button className="app-topbar-bell" onClick={handleOpenNotifs}>
+            🔔
+            {unreadCount > 0 && <span className="notif-count">{unreadCount}</span>}
+          </button>
+
+          {showNotifs && (
+  <div className="notif-dropdown">
+    <div className="notif-header">Notifications</div>
+    {notifs.length === 0 ? (
+      <div className="search-empty">Aucune notification.</div>
+    ) : (
+      notifs.slice(0, 3).map((n) => (
+        <div key={n.id} className="notif-item">
+          <div className="search-result-avatar" style={{ background: n.iconBg, color: 'var(--text-h)' }}>
+            {n.icon}
+          </div>
+          <div>
+            <p>{n.title}</p>
+            <span>{n.subtitle} · {n.time}</span>
+          </div>
+        </div>
+      ))
+    )}
+    <button
+      className="notif-see-all"
+      onClick={() => { setShowNotifs(false); navigate('/settings?tab=notifications'); }}
+    >
+      Voir toutes les notifications
+    </button>
+  </div>
+)}
+        </div>
+
+        <div className="avatar-wrapper" ref={avatarRef}>
+          <div className="app-topbar-avatar" onClick={() => setShowAvatarMenu(!showAvatarMenu)}>
+            {initials}
+          </div>
+
+          {showAvatarMenu && (
+            <div className="avatar-dropdown">
+              <div
+                className="avatar-dropdown-header"
+                onClick={() => { setShowAvatarMenu(false); navigate('/profile'); }}
+              >
+                <div className="search-result-avatar">{initials}</div>
+                <div>
+                  <p>{user.first_name} {user.last_name}</p>
+                  <span>{ROLE_LABELS[role]}</span>
+                </div>
+              </div>
+
+             
+              <button className="avatar-dropdown-item" onClick={() => { setShowAvatarMenu(false); navigate('/settings'); }}>
+                ⚙️ Paramètres
+              </button>
+
+              <div className="avatar-dropdown-divider" />
+
+              <div className="avatar-dropdown-section">Thème</div>
+              <div className="theme-options">
+                <button className={`theme-option ${theme === 'light' ? 'active' : ''}`} onClick={() => setTheme('light')}>
+                  ☀️ Clair
+                </button>
+                <button className={`theme-option ${theme === 'dark' ? 'active' : ''}`} onClick={() => setTheme('dark')}>
+                  🌙 Sombre
+                </button>
+                <button className={`theme-option ${theme === 'system' ? 'active' : ''}`} onClick={() => setTheme('system')}>
+                  💻 Système
+                </button>
+              </div>
+
+              <div className="avatar-dropdown-divider" />
+
+              
+ <button
+  className="avatar-dropdown-item danger"
+  onClick={() => {
+    setShowLogoutModal(true);
+    setShowAvatarMenu(false);
+  }}
+>
+  ↪ Déconnexion
+</button>
+             
+            </div>
+          )}
+        </div>
       </div>
+      {showLogoutModal && (
+  <div className="modal-overlay">
+
+    <div className="delete-modal">
+
+      <h3>Confirmation</h3>
+
+      <p>
+        Voulez-vous vraiment vous déconnecter ?
+      </p>
+
+      <div className="modal-actions">
+
+        <button
+          className="cancel-btn"
+          onClick={() => setShowLogoutModal(false)}
+        >
+          Annuler
+        </button>
+
+
+        <button
+          className="confirm-btn"
+          onClick={confirmLogout}
+        >
+          Déconnexion
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
     </header>
   );
 }

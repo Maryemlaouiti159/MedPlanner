@@ -3,7 +3,6 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { adminSecretariesApi } from '../../api/adminSecretaries';
 import { adminUsersApi } from '../../api/adminUsers';
 import type { Secretary } from '../../types';
-
 export default function SecretariesList() {
   const [secretaries, setSecretaries] = useState<Secretary[]>([]);
   const [loading, setLoading] = useState(true);

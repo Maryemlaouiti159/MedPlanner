@@ -8,6 +8,7 @@ import anypliLogo from '../assets/anypli-logo.png';
 import medplannerIcon from '../assets/medplanner-icon.svg';
 
 export default function Login() {
+
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');

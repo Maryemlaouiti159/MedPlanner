@@ -19,7 +19,10 @@ export interface Secretary {
   user: User;
   doctor: Doctor;
 }
-
+export interface UserFilters {
+  sort_by?: 'first_name' | 'created_at';
+  sort_order?: 'asc' | 'desc';
+}
 export interface UpdateSecretaryData {
   first_name?: string;
   last_name?: string;
@@ -99,7 +102,14 @@ export interface Specialty {
   name: string;
   description: string | null;
 }
-
+export interface AppNotification {
+  id: number | string;
+  icon: string;
+  iconBg: string;
+  title: string;
+  subtitle: string;
+  time: string;
+}
 export interface Doctor {
   id: number;
   user_id: number;

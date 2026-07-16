@@ -1,9 +1,10 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import CreateUserModal from '../../components/admin/CreateUserModal';
 import { adminUsersApi } from '../../api/adminUsers';
 import type { User, UserFilters, UserRole } from '../../types';
 import EditUserModal from '../../components/admin/EditUserModal';
+
 const ROLE_LABELS: Record<UserRole, string> = {
   patient: 'Patient',
   doctor: 'Médecin',
@@ -13,7 +14,6 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 // Rôles modifiables directement depuis cette page.
 // doctor/secretary passent par la page "Médecins" (profil requis).
-const EDITABLE_ROLES: UserRole[] = ['patient', 'admin'];
 
 export default function UsersList() {
   const [users, setUsers] = useState<User[]>([]);
@@ -22,41 +22,62 @@ export default function UsersList() {
   const [lastPage, setLastPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
-const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
   const [filters, setFilters] = useState<UserFilters>({
     role: '',
     search: '',
     is_active: '',
   });
 
-  const fetchUsers = useCallback(async (page: number) => {
-    setLoading(true);
-    try {
-      const response = await adminUsersApi.list({ ...filters, page });
-      setUsers(response.data.data);
-      setCurrentPage(response.data.current_page);
-      setLastPage(response.data.last_page);
-      setTotal(response.data.total);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
+  const [sortBy, setSortBy] = useState<'first_name' | 'created_at'>('first_name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  // Debounce pour la recherche (évite un fetch à chaque frappe)
+  const [searchInput, setSearchInput] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setFilters((prev) => ({ ...prev, search: searchInput }));
+    }, 400);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [searchInput]);
+
+  const fetchUsers = useCallback(
+    async (page: number) => {
+      setLoading(true);
+      try {
+        const response = await adminUsersApi.list({
+          ...filters,
+          page,
+          sort_by: sortBy,
+          sort_order: sortOrder,
+        });
+        setUsers(response.data.data);
+        setCurrentPage(response.data.current_page);
+        setLastPage(response.data.last_page);
+        setTotal(response.data.total);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [filters, sortBy, sortOrder]
+  );
+
+  // Reset systématique à la page 1 dès que filtres ou tri changent
   useEffect(() => {
     fetchUsers(1);
   }, [fetchUsers]);
-
-  const handleRoleChange = async (userId: number, role: UserRole) => {
-    if (!EDITABLE_ROLES.includes(role)) return;
-    try {
-      await adminUsersApi.changeRole(userId, role as 'patient' | 'admin');
-      fetchUsers(currentPage);
-    } catch (err: any) {
-      alert(err.response?.data?.message ?? 'Erreur lors du changement de rôle.');
-    }
-  };
 
   const handleToggleStatus = async (userId: number) => {
     try {
@@ -67,66 +88,112 @@ const [editingUser, setEditingUser] = useState<User | null>(null);
     }
   };
 
-  const handleDelete = async (user: User) => {
+  const handleDelete = (user: User) => {
     if (user.role === 'doctor' || user.role === 'secretary') {
-      alert('Utilisez la page "Médecins" pour supprimer un médecin (sa secrétaire sera retirée automatiquement).');
+      alert(
+        'Utilisez la page "Médecins" pour supprimer un médecin (sa secrétaire sera retirée automatiquement).'
+      );
       return;
     }
-    if (!confirm(`Supprimer ${user.first_name} ${user.last_name} ? Cette action est irréversible.`)) return;
+    setUserToDelete(user);
+    setShowDeleteModal(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
     try {
-      await adminUsersApi.remove(user.id);
+      await adminUsersApi.remove(userToDelete.id);
       fetchUsers(currentPage);
     } catch (err: any) {
       alert(err.response?.data?.message ?? 'Erreur lors de la suppression.');
+    } finally {
+      setShowDeleteModal(false);
+      setUserToDelete(null);
     }
   };
 
-  const initials = (u: User) => `${u.first_name[0]}${u.last_name[0]}`.toUpperCase();
+
+  const initials = (u: User) => {
+    const f = u.first_name?.[0] ?? '';
+    const l = u.last_name?.[0] ?? '';
+    return `${f}${l}`.toUpperCase() || '?';
+  };
 
   return (
     <DashboardLayout>
       <div className="page-header">
         <div>
           <h1 className="page-title">Utilisateurs</h1>
-          <p className="page-subtitle">{total} utilisateur{total > 1 ? 's' : ''} au total</p>
+          <p className="page-subtitle">
+            {total} utilisateur{total > 1 ? 's' : ''} au total
+          </p>
         </div>
-        <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-          + Nouvel utilisateur
-        </button>
+
+        <div className="header-actions">
+          <button className="filter-button" onClick={() => setShowFilters(!showFilters)}>
+            🔍 Filtrer
+          </button>
+
+          <button
+            className="sort-button"
+            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+            title={`Trier par ${sortBy === 'first_name' ? 'nom' : 'date'}`}
+          >
+            {sortOrder === 'asc' ? '⬆️ Croissant' : '⬇️ Décroissant'}
+          </button>
+
+          <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
+            + Nouvel utilisateur
+          </button>
+        </div>
       </div>
 
-      <div className="filters-bar">
-        <input
-          type="text"
-          className="filter-search"
-          placeholder="Rechercher par nom ou email..."
-          value={filters.search}
-          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-        />
+      {showFilters && (
+        <div className="filters-bar">
+          <input
+            type="text"
+            className="filter-search"
+            placeholder="Rechercher par nom ou email..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
 
-        <select
-          className="filter-select"
-          value={filters.role}
-          onChange={(e) => setFilters({ ...filters, role: e.target.value as UserRole | '' })}
-        >
-          <option value="">Tous les rôles</option>
-          <option value="patient">Patient</option>
-          <option value="doctor">Médecin</option>
-          <option value="secretary">Secrétaire</option>
-          <option value="admin">Admin</option>
-        </select>
+          <select
+            className="filter-select"
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'first_name' | 'created_at')}
+          >
+            <option value="first_name">Trier par nom</option>
+            <option value="created_at">Trier par date</option>
+          </select>
 
-        <select
-          className="filter-select"
-          value={filters.is_active}
-          onChange={(e) => setFilters({ ...filters, is_active: e.target.value as '' | '0' | '1' })}
-        >
-          <option value="">Tous les statuts</option>
-          <option value="1">Actif</option>
-          <option value="0">Inactif</option>
-        </select>
-      </div>
+          <select
+            className="filter-select"
+            value={filters.role}
+            onChange={(e) => setFilters({ ...filters, role: e.target.value as UserRole | '' })}
+          >
+            <option value="">Tous les rôles</option>
+            <option value="patient">Patient</option>
+            <option value="doctor">Médecin</option>
+            <option value="secretary">Secrétaire</option>
+            <option value="admin">Admin</option>
+          </select>
+
+          <select
+            className="filter-select"
+            value={filters.is_active}
+            onChange={(e) =>
+              setFilters({ ...filters, is_active: e.target.value as '' | '0' | '1' })
+            }
+          >
+            <option value="">Tous les statuts</option>
+            <option value="1">Actif</option>
+            <option value="0">Inactif</option>
+          </select>
+
+          
+        </div>
+      )}
 
       <div className="users-table-card">
         {loading ? (
@@ -153,27 +220,16 @@ const [editingUser, setEditingUser] = useState<User | null>(null);
                       <div className="user-cell">
                         <div className="user-cell-avatar">{initials(u)}</div>
                         <div>
-                          <div className="user-cell-name">{u.first_name} {u.last_name}</div>
+                          <div className="user-cell-name">
+                            {u.first_name} {u.last_name}
+                          </div>
                           <div className="user-cell-email">{u.email}</div>
                         </div>
                       </div>
                     </td>
                     <td>{u.phone || '—'}</td>
                     <td>
-                      {EDITABLE_ROLES.includes(u.role) ? (
-                        <select
-                          className="role-select"
-                          value={u.role}
-                          onChange={(e) => handleRoleChange(u.id, e.target.value as UserRole)}
-                        >
-                          <option value="patient">Patient</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      ) : (
-                        <span className="role-badge" title="Géré via la page Médecins">
-                          {ROLE_LABELS[u.role]}
-                        </span>
-                      )}
+                      <span className="role-badge">{ROLE_LABELS[u.role]}</span>
                     </td>
                     <td>
                       <button
@@ -185,65 +241,126 @@ const [editingUser, setEditingUser] = useState<User | null>(null);
                     </td>
                     <td>{new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
                     <td>
-  <div className="table-actions">
-    <button
-      className="icon-btn"
-      onClick={() => setEditingUser(u)}
-      title="Modifier"
-    >
-      ✏️
-    </button>
-    <button
-      className="icon-btn danger"
-      onClick={() => handleDelete(u)}
-      title="Supprimer"
-    >
-      🗑️
-    </button>
-  </div>
-</td>
-                    
+                      <div className="table-actions">
+                        <button
+                          className="icon-btn"
+                          onClick={() => setEditingUser(u)}
+                          title="Modifier"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="icon-btn danger"
+                          onClick={() => handleDelete(u)}
+                          title="Supprimer"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
             <div className="pagination-bar">
-              <span className="pagination-info">
-                Page {currentPage} sur {lastPage}
-              </span>
-              <div className="pagination-controls">
-                <button
-                  className="pagination-btn"
-                  disabled={currentPage === 1}
-                  onClick={() => fetchUsers(currentPage - 1)}
-                >
-                  ‹
-                </button>
-                <button
-                  className="pagination-btn"
-                  disabled={currentPage === lastPage}
-                  onClick={() => fetchUsers(currentPage + 1)}
-                >
-                  ›
-                </button>
+              <button
+                className="pagination-nav-link"
+                disabled={currentPage === 1}
+                onClick={() => fetchUsers(currentPage - 1)}
+              >
+                Précédent
+              </button>
+
+              <div className="pagination-numbers">
+                {Array.from({ length: lastPage }, (_, i) => i + 1)
+                  .filter((p) => {
+                    if (lastPage <= 7) return true;
+                    if (p === 1 || p === lastPage) return true;
+                    return Math.abs(p - currentPage) <= 1;
+                  })
+                  .reduce<(number | 'ellipsis')[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('ellipsis');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, idx) =>
+                    p === 'ellipsis' ? (
+                      <span key={`ellipsis-${idx}`} className="pagination-ellipsis">
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={p}
+                        className={`pagination-number ${p === currentPage ? 'active' : ''}`}
+                        onClick={() => fetchUsers(p)}
+                      >
+                        {p}
+                      </button>
+                    )
+                  )}
               </div>
+
+              <button
+                className="pagination-nav-link"
+                disabled={currentPage === lastPage}
+                onClick={() => fetchUsers(currentPage + 1)}
+              >
+                Suivant
+              </button>
             </div>
           </>
         )}
       </div>
-{editingUser && (
-  <EditUserModal
-    user={editingUser}
-    onClose={() => setEditingUser(null)}
-    onUpdated={() => fetchUsers(currentPage)}
-  />
-)}
+
+      {editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => setEditingUser(null)}
+          onUpdated={() => fetchUsers(currentPage)}
+        />
+      )}
+
       {showCreateModal && (
         <CreateUserModal
           onClose={() => setShowCreateModal(false)}
           onCreated={() => fetchUsers(currentPage)}
         />
+      )}
+
+      {showDeleteModal && userToDelete && (
+        <div className="modal-overlay">
+          <div className="delete-modal">
+            <h3>Supprimer l'utilisateur</h3>
+
+            <p>
+              Voulez-vous vraiment supprimer
+              <strong>
+                {' '}
+                {userToDelete.first_name} {userToDelete.last_name}
+              </strong>
+              ?
+            </p>
+
+            <p className="warning-text">Cette action est irréversible.</p>
+
+            <div className="modal-actions">
+              <button
+                className="cancel-btn"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setUserToDelete(null);
+                }}
+              >
+                Annuler
+              </button>
+
+              <button className="confirm-btn" onClick={confirmDelete}>
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </DashboardLayout>
   );

@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
-
+import { useSearchParams } from 'react-router-dom';
+import { fetchNotificationsForRole } from '../api/notifications';
+import type { AppNotification } from '../types';
 type Tab = 'account' | 'notifications' | 'security' | 'privacy';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -13,7 +15,11 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export default function Settings() {
-  const [activeTab, setActiveTab] = useState<Tab>('account');
+  const [searchParams] = useSearchParams();
+    const initialTab = searchParams.get('tab') as Tab;
+ const [activeTab, setActiveTab] = useState<Tab>(
+    initialTab === 'notifications' ? 'notifications' : 'account'
+  );
   const { user, refreshUser } = useAuth();
 
   if (!user) return null;
@@ -22,6 +28,14 @@ export default function Settings() {
   const memberSince = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(
     new Date(user.created_at)
   );
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+useEffect(() => {
+  if(activeTab === 'notifications' && user){
+    fetchNotificationsForRole(user.role)
+      .then(setNotifications);
+  }
+}, [activeTab, user]);
 
   return (
     <DashboardLayout>
@@ -64,8 +78,37 @@ export default function Settings() {
           )}
           {activeTab === 'security' && <SecurityTab />}
           {activeTab === 'notifications' && (
-            <div className="settings-placeholder">Réglages de notifications à venir.</div>
-          )}
+<div className="notifications-list">
+
+{
+notifications.length === 0 ? (
+  <p>Aucune notification</p>
+) : (
+ notifications.map((n)=>(
+   <div className="notification-card" key={n.id}>
+
+      <div 
+        className="search-result-avatar"
+        style={{
+          background:n.iconBg
+        }}
+      >
+        {n.icon}
+      </div>
+
+      <div>
+        <h3>{n.title}</h3>
+        <p>{n.subtitle}</p>
+        <small>{n.time}</small>
+      </div>
+
+   </div>
+ ))
+)
+
+}
+
+</div>          )}
           
         </div>
       </div>

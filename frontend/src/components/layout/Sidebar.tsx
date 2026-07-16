@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { NAV_ITEMS } from '../../config/navigation';
@@ -13,7 +14,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
 
   const items = NAV_ITEMS[user.role];
   const initials = `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
-
+const [showLogoutModal, setShowLogoutModal] = useState(false);
   return (
 <aside className={`app-sidebar ${isOpen ? '' : 'collapsed'}`}>     
      <div className="app-sidebar-brand">
@@ -45,14 +46,42 @@ export default function Sidebar({ isOpen }: SidebarProps) {
 
 {isOpen && (
   <button
-    className="app-sidebar-logout"
-    onClick={logout}
-    title="Se déconnecter"
-  >
-    ↪
-  </button>
+  className="app-sidebar-logout"
+  onClick={() => setShowLogoutModal(true)}
+  title="Se déconnecter"
+>
+  ↪
+</button>
 )}
       </div>
+      {showLogoutModal && (
+  <div className="modal-overlay">
+    <div className="logout-modal">
+      <h3>Déconnexion</h3>
+
+      <p>Êtes-vous sûr de vouloir vous déconnecter ?</p>
+
+      <div className="modal-actions">
+        <button
+          className="cancel-btn"
+          onClick={() => setShowLogoutModal(false)}
+        >
+          Annuler
+        </button>
+
+        <button
+          className="confirm-btn"
+          onClick={() => {
+            logout();
+            setShowLogoutModal(false);
+          }}
+        >
+          Se déconnecter
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </aside>
   );
 }

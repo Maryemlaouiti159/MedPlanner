@@ -4,12 +4,12 @@ import CreateDoctorModal from '../../components/admin/CreateDoctorModal';
 import { adminDoctorsApi } from '../../api/adminDoctors';
 import { adminUsersApi } from '../../api/adminUsers';
 import type { Doctor } from '../../types';
-
 export default function DoctorsList() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-
+const [doctorToDelete, setDoctorToDelete] = useState<Doctor | null>(null);
+const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fetchDoctors = useCallback(async () => {
     setLoading(true);
     try {
@@ -33,16 +33,24 @@ export default function DoctorsList() {
     }
   };
 
-  const handleDelete = async (doctor: Doctor) => {
-    const name = `${doctor.user.first_name} ${doctor.user.last_name}`;
-    if (!confirm(`Supprimer Dr ${name} ? Sa secrétaire sera également supprimée. Action irréversible.`)) return;
-    try {
-      await adminDoctorsApi.remove(doctor.id);
-      fetchDoctors();
-    } catch (err: any) {
-      alert(err.response?.data?.message ?? 'Erreur lors de la suppression.');
-    }
-  };
+ const handleDelete = (doctor: Doctor) => {
+  setDoctorToDelete(doctor);
+  setShowDeleteModal(true);
+};
+
+const confirmDelete = async () => {
+  if (!doctorToDelete) return;
+
+  try {
+    await adminDoctorsApi.remove(doctorToDelete.id);
+    fetchDoctors();
+  } catch (err: any) {
+    alert(err.response?.data?.message ?? 'Erreur lors de la suppression.');
+  } finally {
+    setShowDeleteModal(false);
+    setDoctorToDelete(null);
+  }
+};
 
   return (
     <DashboardLayout>
@@ -106,6 +114,50 @@ export default function DoctorsList() {
       {showCreateModal && (
         <CreateDoctorModal onClose={() => setShowCreateModal(false)} onCreated={fetchDoctors} />
       )}
+{showDeleteModal && doctorToDelete && (
+  <div className="modal-overlay">
+    <div className="delete-modal">
+      <h3>Supprimer le médecin</h3>
+
+      <p>
+        Voulez-vous vraiment supprimer
+        <strong>
+          {" "}Dr {doctorToDelete.user.first_name}{" "}
+          {doctorToDelete.user.last_name}
+        </strong>
+        ?
+      </p>
+
+      <p className="warning-text">
+        La secrétaire associée sera également supprimée.
+        <br />
+        Cette action est irréversible.
+      </p>
+
+      <div className="modal-actions">
+        <button
+          className="cancel-btn"
+          onClick={() => {
+            setShowDeleteModal(false);
+            setDoctorToDelete(null);
+          }}
+        >
+          Annuler
+        </button>
+
+        <button
+          className="confirm-btn"
+          onClick={confirmDelete}
+        >
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
     </DashboardLayout>
   );
 }

@@ -3,7 +3,6 @@ import DashboardLayout from '../components/layout/DashboardLayout';
 import StatCard from '../components/dashboard/StatCard';
 import { greeting, todayLabel } from '../utils/date';
 import { MOCK_UPCOMING_APPOINTMENTS, MOCK_STATS } from '../data/mockDashboard';
-
 export default function Dashboard() {
   const { user } = useAuth();
 

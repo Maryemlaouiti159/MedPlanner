@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { specialtiesApi } from '../../api/specialties';
 import type { Specialty } from '../../types';
-
 export default function SpecialtiesList() {
   const [specialties, setSpecialties] = useState<Specialty[]>([]);
   const [loading, setLoading] = useState(true);
@@ -10,7 +9,8 @@ export default function SpecialtiesList() {
   const [editing, setEditing] = useState<Specialty | null>(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [error, setError] = useState('');
-
+const [showDeleteModal, setShowDeleteModal] = useState(false);
+const [specialtyToDelete, setSpecialtyToDelete] = useState<Specialty | null>(null);
   const fetchSpecialties = useCallback(async () => {
     setLoading(true);
     try {
@@ -55,15 +55,24 @@ export default function SpecialtiesList() {
     }
   };
 
-  const handleDelete = async (s: Specialty) => {
-    if (!confirm(`Supprimer la spécialité "${s.name}" ?`)) return;
-    try {
-      await specialtiesApi.remove(s.id);
-      fetchSpecialties();
-    } catch (err: any) {
-      alert(err.response?.data?.message ?? 'Erreur lors de la suppression.');
-    }
-  };
+  const handleDelete = (s: Specialty) => {
+  setSpecialtyToDelete(s);
+  setShowDeleteModal(true);
+};
+
+const confirmDelete = async () => {
+  if (!specialtyToDelete) return;
+
+  try {
+    await specialtiesApi.remove(specialtyToDelete.id);
+    fetchSpecialties();
+  } catch (err: any) {
+    alert(err.response?.data?.message ?? 'Erreur lors de la suppression.');
+  } finally {
+    setShowDeleteModal(false);
+    setSpecialtyToDelete(null);
+  }
+};
 
   return (
     <DashboardLayout>
@@ -134,6 +143,44 @@ export default function SpecialtiesList() {
           </div>
         </div>
       )}
+{showDeleteModal && specialtyToDelete && (
+  <div className="modal-overlay">
+    <div className="delete-modal">
+      <h3>Supprimer la spécialité</h3>
+
+      <p>
+        Voulez-vous vraiment supprimer la spécialité
+        <strong> "{specialtyToDelete.name}"</strong> ?
+      </p>
+
+      <p className="warning-text">
+        Cette action est irréversible.
+      </p>
+
+      <div className="modal-actions">
+        <button
+          className="cancel-btn"
+          onClick={() => {
+            setShowDeleteModal(false);
+            setSpecialtyToDelete(null);
+          }}
+        >
+          Annuler
+        </button>
+
+        <button
+          className="confirm-btn"
+          onClick={confirmDelete}
+        >
+          Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
     </DashboardLayout>
   );
 }

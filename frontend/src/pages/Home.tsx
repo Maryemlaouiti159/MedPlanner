@@ -1,8 +1,28 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import medplannerIcon from '../assets/medplanner-icon.svg';
 import anypliLogo from '../assets/anypli-logo.png';
+import { publicApi } from '../api/public';
+
+import type { PublicStats, FeaturedDoctor } from '../api/public';
+
+const AVATAR_COLORS = ['var(--accent)', 'var(--lilac)', 'var(--success)'];
+const STATUS_LABELS: Array<'status-confirmed' | 'status-pending'> = [
+  'status-confirmed', 'status-pending', 'status-confirmed',
+];
 
 export default function Home() {
+  const [stats, setStats] = useState<PublicStats | null>(null);
+  const [doctors, setDoctors] = useState<FeaturedDoctor[]>([]);
+
+  useEffect(() => {
+    publicApi.stats().then((res) => setStats(res.data)).catch(() => {});
+    publicApi.featuredDoctors().then((res) => setDoctors(res.data)).catch(() => {});
+  }, []);
+
+  const initials = (name: string) =>
+    name.replace('Dr. ', '').split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
   return (
     <div className="home-page">
       <header className="home-header">
@@ -50,43 +70,45 @@ export default function Home() {
               <span>K</span>
               <span>S</span>
             </div>
-            <p><strong>500+</strong> patients nous font déjà confiance</p>
+            <p>
+              <strong>{stats ? stats.patients_count : '···'}+</strong> patients nous font déjà confiance
+            </p>
           </div>
         </div>
 
         <div className="home-hero-visual">
           <div className="home-mockup">
             <div className="home-mockup-header">
-              <h4>Planning aujourd'hui</h4>
+              <h4>Nos médecins</h4>
               <span className="home-mockup-dot"></span>
             </div>
 
-            <div className="home-appointment-card">
-              <div className="home-appointment-avatar" style={{ background: 'var(--accent)' }}>KB</div>
-              <div className="home-appointment-info">
-                <p>Dr. Kamel Laouiti</p>
-                <span>Cardiologie · 09:30</span>
+            {doctors.length === 0 ? (
+              <div className="home-appointment-card">
+                <div className="home-appointment-info">
+                  <p>Aucun médecin disponible pour le moment</p>
+                </div>
               </div>
-              <span className="home-appointment-status status-confirmed">Confirmé</span>
-            </div>
-
-            <div className="home-appointment-card">
-              <div className="home-appointment-avatar" style={{ background: 'var(--lilac)' }}>AL</div>
-              <div className="home-appointment-info">
-                <p>Dr. Firas laouiti</p>
-                <span>Dermatologue · 14:00</span>
-              </div>
-              <span className="home-appointment-status status-pending">En attente</span>
-            </div>
-
-            <div className="home-appointment-card" style={{ marginBottom: 0 }}>
-              <div className="home-appointment-avatar" style={{ background: 'var(--success)' }}>LT</div>
-              <div className="home-appointment-info">
-                <p>Dr. Faouzia Trimech</p>
-                <span>Pédiatrie · 16:15</span>
-              </div>
-              <span className="home-appointment-status status-confirmed">Confirmé</span>
-            </div>
+            ) : (
+              doctors.map((doc, i) => (
+                <div
+                  className="home-appointment-card"
+                  key={doc.id}
+                  style={{ marginBottom: i === doctors.length - 1 ? 0 : undefined }}
+                >
+                  <div className="home-appointment-avatar" style={{ background: AVATAR_COLORS[i % 3] }}>
+                    {initials(doc.name)}
+                  </div>
+                  <div className="home-appointment-info">
+                    <p>{doc.name}</p>
+                    <span>{doc.specialty}{doc.city ? ` · ${doc.city}` : ''}</span>
+                  </div>
+                  <span className={`home-appointment-status ${STATUS_LABELS[i % 3]}`}>
+                    Disponible
+                  </span>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="home-floating-card card-1">

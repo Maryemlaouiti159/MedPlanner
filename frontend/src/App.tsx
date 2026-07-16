@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -11,7 +11,13 @@ import DoctorsList from './pages/admin/DoctorsList';
 import SpecialtiesList from './pages/admin/SpecialtiesList';
 import SecretariesList from './pages/admin/SecretariesList';
 import Settings from './pages/Settings';
-
+import UserProfile from './pages/admin/UserProfile';
+import AdminDashboard from './pages/admin/AdminDashboard';
+function DashboardRouter() {
+  const { user } = useAuth();
+  if (user?.role === 'admin') return <AdminDashboard />;
+  return <Dashboard />;
+}
 
 function App() {
   return (
@@ -22,9 +28,13 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route
+           <Route
             path="/dashboard"
-            element={<ProtectedRoute><Dashboard /></ProtectedRoute>}
+            element={
+              <ProtectedRoute>
+                <DashboardRouter />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/admin/users"
@@ -37,6 +47,14 @@ function App() {
           <Route
   path="/admin/specialties"
   element={<ProtectedRoute allowedRoles={['admin']}><SpecialtiesList /></ProtectedRoute>}
+/>
+<Route
+  path="/admin/users/:id"
+  element={
+    <ProtectedRoute allowedRoles={['admin']}>
+      <UserProfile />
+    </ProtectedRoute>
+  }
 />
 <Route
   path="/admin/secretaries"
