@@ -70,4 +70,8 @@ public function secretaryProfile()
 {
     return $this->hasOne(Secretary::class);
 }
+public function appointments()
+{
+    return $this->hasMany(Appointment::class, 'patient_id');
+}
 }
