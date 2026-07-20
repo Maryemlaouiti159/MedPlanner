@@ -2,11 +2,16 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
+
 import Login from './pages/Login';
+
 import Register from './pages/Register';
 import Availabilities from './pages/doctor/Availabilities';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import PatientDoctorsList from './pages/patient/DoctorsList';
+import DoctorDetail from './pages/patient/DoctorDetail';
+import MyAppointments from './pages/patient/MyAppointments';
 import UsersList from './pages/admin/UsersList';
 import DoctorsList from './pages/admin/DoctorsList';
 import SpecialtiesList from './pages/admin/SpecialtiesList';
@@ -19,6 +24,9 @@ function DashboardRouter() {
   if (user?.role === 'admin') return <AdminDashboard />;
   return <Dashboard />;
 }
+
+
+
 
 function App() {
   return (
@@ -68,6 +76,18 @@ function App() {
 <Route
   path="/admin/secretaries"
   element={<ProtectedRoute allowedRoles={['admin']}><SecretariesList /></ProtectedRoute>}
+/>
+<Route
+  path="/doctors"
+  element={<ProtectedRoute allowedRoles={['patient']}><PatientDoctorsList /></ProtectedRoute>}
+/>
+<Route
+  path="/doctors/:id"
+  element={<ProtectedRoute allowedRoles={['patient']}><DoctorDetail /></ProtectedRoute>}
+/>
+<Route
+  path="/appointments"
+  element={<ProtectedRoute allowedRoles={['patient']}><MyAppointments /></ProtectedRoute>}
 />
 <Route
   path="/settings"

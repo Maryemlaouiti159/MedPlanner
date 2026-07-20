@@ -177,3 +177,69 @@ export interface UpdateDoctorData {
   consultation_duration?: number;
   consultation_price?: number;
 }
+export interface Availability {
+  id: number;
+  doctor_id: number;
+  date: string;
+  start_time: string;
+  end_time: string;
+  is_booked: boolean;
+}
+
+
+// Étend Doctor (ajoute juste ce champ à ton interface Doctor existante)
+// next_slot?: NextSlot | null;
+export interface PatientAppointment {
+  id: number;
+  patient_id: number;
+  doctor_id: number;
+  availability_id: number;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  reason: string | null;
+  created_at: string;
+  doctor: Doctor;
+  availability: Availability;
+}
+
+export interface CreateAppointmentData {
+  availability_id: number;
+  consultation_type: 'in_person' | 'teleconsultation';
+  reason?: string;
+}
+export interface PatientDoctor {
+  id: number;
+  bio: string | null;
+  address: string | null;
+  city: string | null;
+  consultation_duration: number;
+  consultation_price: string | null;
+  user: {
+    id: number;
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string | null;
+  };
+  specialty: {
+    id: number;
+    name: string;
+    description: string | null;
+  };
+}
+
+export interface Appointment {
+  id: number;
+  patient_id: number;
+  doctor_id: number;
+  availability_id: number;
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
+  reason: string | null;
+  created_at: string;
+  doctor: PatientDoctor;
+  availability: Availability;
+}
+
+export interface CreateAppointmentData {
+  availability_id: number;
+  reason?: string;
+}
