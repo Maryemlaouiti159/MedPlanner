@@ -15,6 +15,14 @@ use App\Repositories\Contracts\AvailabilityRepositoryInterface;
 use App\Repositories\AvailabilityRepository;
 use App\Repositories\Contracts\AppointmentRepositoryInterface;
 use App\Repositories\AppointmentRepository;
+use App\Repositories\Contracts\NotificationRepositoryInterface;
+use App\Repositories\NotificationRepository;
+use App\Repositories\Contracts\DoctorDashboardRepositoryInterface;
+use App\Repositories\DoctorDashboardRepository;
+
+use App\Repositories\Contracts\SecretaryAppointmentRepositoryInterface;
+use App\Repositories\SecretaryAppointmentRepository;
+
 
 class RepositoryServiceProvider extends ServiceProvider
 {
@@ -26,7 +34,9 @@ class RepositoryServiceProvider extends ServiceProvider
                 $this->app->bind(UserRepositoryInterface::class, UserRepository::class); 
 $this->app->bind(AvailabilityRepositoryInterface::class, AvailabilityRepository::class);
 $this->app->bind(AppointmentRepositoryInterface::class, AppointmentRepository::class);
-
+$this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);
+        $this->app->bind(DoctorDashboardRepositoryInterface::class, DoctorDashboardRepository::class);
+$this->app->bind(SecretaryAppointmentRepositoryInterface::class, SecretaryAppointmentRepository::class);
 
     }
 }

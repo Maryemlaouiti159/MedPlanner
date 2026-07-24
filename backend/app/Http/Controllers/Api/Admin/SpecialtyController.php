@@ -10,7 +10,23 @@ class SpecialtyController extends Controller
 {
     public function index()
     {
-        return response()->json(Specialty::orderBy('name')->get());
+        $specialties = Specialty::orderBy('name')
+            ->withCount(['doctors' => function($q) {
+                $q->withCount('availabilities');
+            }])
+            ->get()
+            ->map(function($specialty) {
+                $slotCount = $specialty->doctors->sum('availabilities_count');
+                return [
+                    'id' => $specialty->id,
+                    'name' => $specialty->name,
+                    'description' => $specialty->description,
+                    'doctors_count' => $specialty->doctors_count,
+                    'slots_count' => $slotCount,
+                ];
+            });
+
+        return response()->json($specialties);
     }
 
     public function store(Request $request)

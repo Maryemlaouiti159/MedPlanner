@@ -74,4 +74,8 @@ public function appointments()
 {
     return $this->hasMany(Appointment::class, 'patient_id');
 }
+public function notifications()
+{
+    return $this->hasMany(Notification::class);
+}
 }

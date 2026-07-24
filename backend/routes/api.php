@@ -7,10 +7,16 @@ use App\Http\Controllers\Api\Admin\SecretaryController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Api\Admin\SpecialtyController;
+use App\Http\Controllers\Api\Admin\AppointmentController as AdminAppointmentController;
 use App\Http\Controllers\Api\PublicController;
 use App\Http\Controllers\Api\Doctor\AvailabilityController;
 use App\Http\Controllers\Api\Patient\DoctorController as PatientDoctorController;
 use App\Http\Controllers\Api\Patient\AppointmentController;
+use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\Secretary\DashboardController as SecretaryDashboardController;
+use App\Http\Controllers\Api\Secretary\AppointmentController as SecretaryAppointmentController;
+use App\Http\Controllers\Api\Secretary\PatientController as SecretaryPatientController;
+use App\Http\Controllers\Api\Secretary\AvailabilityController as SecretaryAvailabilityController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -32,6 +38,13 @@ Route::middleware(['auth:sanctum', 'force.password.change'])->group(function () 
     Route::put('/profile', [AuthController::class, 'updateProfile']);
     Route::put('/password', [AuthController::class, 'changePassword'])->name('password.change');
 
+    // Notification routes
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::patch('/{notification}/read', [NotificationController::class, 'markAsRead']);
+        Route::patch('/read-all', [NotificationController::class, 'markAllAsRead']);
+    });
+
     Route::middleware('role:admin')->prefix('admin')->group(function () {
         Route::apiResource('doctors', DoctorController::class);
         Route::apiResource('specialties', SpecialtyController::class)->only(['index', 'store', 'update', 'destroy']);
@@ -45,15 +58,25 @@ Route::middleware(['auth:sanctum', 'force.password.change'])->group(function () 
         Route::patch('/users/{user}/role', [AdminUserController::class, 'changeRole']);
         Route::patch('/users/{user}/toggle-status', [AdminUserController::class, 'toggleStatus']);
         Route::delete('/users/{user}', [AdminUserController::class, 'destroy']);
+
+        Route::get('/appointments', [AdminAppointmentController::class, 'index']);
+        Route::get('/appointments/{appointment}', [AdminAppointmentController::class, 'show']);
+        Route::put('/appointments/{appointment}', [AdminAppointmentController::class, 'update']);
+        Route::delete('/appointments/{appointment}', [AdminAppointmentController::class, 'destroy']);
     });
     // Dans le groupe auth:sanctum, en dehors du groupe role:admin :
 Route::middleware('role:doctor')->prefix('doctor')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Api\Doctor\DashboardController::class, 'index']);
+    Route::patch('/appointments/{appointment}/accept', [\App\Http\Controllers\Api\Doctor\DashboardController::class, 'acceptAppointment']);
+    Route::patch('/appointments/{appointment}/reject', [\App\Http\Controllers\Api\Doctor\DashboardController::class, 'rejectAppointment']);
+    Route::get('/patients', [\App\Http\Controllers\Api\Doctor\PatientController::class, 'index']);
     Route::get('/availabilities', [AvailabilityController::class, 'index']);
     Route::post('/availabilities', [AvailabilityController::class, 'store']);
     Route::delete('/availabilities/{availability}', [AvailabilityController::class, 'destroy']);
 });
 // Dans le groupe auth:sanctum, en dehors de role:admin/doctor :
 Route::middleware('role:patient')->prefix('patient')->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\Api\Patient\DashboardController::class, 'index']);
 
     Route::get('/specialties', [SpecialtyController::class, 'index']);
 
@@ -65,5 +88,20 @@ Route::middleware('role:patient')->prefix('patient')->group(function () {
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
+});
+Route::middleware('role:secretary')->prefix('secretary')->group(function () {
+    Route::get('/dashboard', [SecretaryDashboardController::class, 'index']);
+
+    Route::get('/availabilities', [SecretaryAvailabilityController::class, 'index']);
+
+    Route::get('/appointments', [SecretaryAppointmentController::class, 'index']);
+    Route::post('/appointments', [SecretaryAppointmentController::class, 'store']);
+    Route::patch('/appointments/{appointment}/reschedule', [SecretaryAppointmentController::class, 'reschedule']);
+    Route::patch('/appointments/{appointment}/confirm', [SecretaryAppointmentController::class, 'confirm']);
+    Route::patch('/appointments/{appointment}/cancel', [SecretaryAppointmentController::class, 'cancel']);
+
+    Route::get('/patients', [SecretaryPatientController::class, 'index']);
+    Route::post('/patients', [SecretaryPatientController::class, 'store']);
+    Route::get('/patients/{patientId}/history', [SecretaryPatientController::class, 'history']);
 });
 });
