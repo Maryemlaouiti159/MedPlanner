@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminUsersApi } from '../../api/adminUsers';
-import { fetchNotificationsForRole } from '../../api/notifications';
+import { fetchNotifications } from '../../api/notifications';
 import type { User, AppNotification } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -67,18 +67,9 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
   const loadNotifications = useCallback(() => {
     if (!user) return;
 
-    fetchNotificationsForRole(user.role).then((data) => {
+    fetchNotifications().then((data) => {
       setNotifs(data);
-
-      const lastSeenId = localStorage.getItem(getLastSeenKey(user.id));
-      if (!lastSeenId) {
-        // Première visite : tout est considéré non lu
-        setUnreadCount(data.length);
-      } else {
-        // Compte combien de notifs ont un id "après" le dernier vu
-        const lastSeenIndex = data.findIndex((n) => String(n.id) === lastSeenId);
-        setUnreadCount(lastSeenIndex === -1 ? data.length : lastSeenIndex);
-      }
+      setUnreadCount(data.filter(n => !n.isRead).length);
     }).catch(() => {});
   }, [user]);
 
@@ -92,12 +83,6 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
   const handleOpenNotifs = () => {
     const next = !showNotifs;
     setShowNotifs(next);
-
-    if (next && user && notifs.length > 0) {
-      // Marque tout comme lu : mémorise l'id de la notif la plus récente
-      localStorage.setItem(getLastSeenKey(user.id), String(notifs[0].id));
-      setUnreadCount(0);
-    }
   };
 
   useEffect(() => {

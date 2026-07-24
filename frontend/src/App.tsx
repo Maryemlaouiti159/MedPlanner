@@ -17,12 +17,28 @@ import DoctorsList from './pages/admin/DoctorsList';
 import SpecialtiesList from './pages/admin/SpecialtiesList';
 import SecretariesList from './pages/admin/SecretariesList';
 import Settings from './pages/Settings';
+import Notifications from './pages/Notifications';
 import UserProfile from './pages/admin/UserProfile';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import DoctorDashboard from './pages/doctor/DoctorDashboard';
+import DoctorPatients from './pages/doctor/Patients';
+import AdminAppointmentsList from './pages/admin/AdminAppointmentsList';
+import SecretaryDashboard from './pages/secretary/SecretaryDashboard';
+import SecretaryAppointments 
+from './pages/secretary/SecretaryAppointments';
 function DashboardRouter() {
-  const { user } = useAuth();
-  if (user?.role === 'admin') return <AdminDashboard />;
-  return <Dashboard />;
+    const { user } = useAuth();
+
+    if (user?.role === 'admin')
+        return <AdminDashboard />;
+
+    if (user?.role === 'doctor')
+        return <DoctorDashboard />;
+
+    if (user?.role === 'secretary')
+        return <SecretaryDashboard />;
+
+    return <Dashboard />;
 }
 
 
@@ -66,6 +82,14 @@ function App() {
   }
 />
 <Route
+  path="/patients"
+  element={
+    <ProtectedRoute allowedRoles={['doctor']}>
+      <DoctorPatients />
+    </ProtectedRoute>
+  }
+/>
+<Route
   path="/admin/users/:id"
   element={
     <ProtectedRoute allowedRoles={['admin']}>
@@ -76,6 +100,10 @@ function App() {
 <Route
   path="/admin/secretaries"
   element={<ProtectedRoute allowedRoles={['admin']}><SecretariesList /></ProtectedRoute>}
+/>
+<Route
+  path="/admin/appointments"
+  element={<ProtectedRoute allowedRoles={['admin']}><AdminAppointmentsList /></ProtectedRoute>}
 />
 <Route
   path="/doctors"
@@ -92,6 +120,19 @@ function App() {
 <Route
   path="/settings"
   element={<ProtectedRoute><Settings /></ProtectedRoute>}
+/>
+
+<Route
+ path="/secretary/appointments"
+ element={
+  <ProtectedRoute allowedRoles={['secretary']}>
+    <SecretaryAppointments/>
+  </ProtectedRoute>
+ }
+/>
+<Route
+  path="/notifications"
+  element={<ProtectedRoute><Notifications /></ProtectedRoute>}
 />
         </Routes>
         

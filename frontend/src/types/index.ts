@@ -20,7 +20,7 @@ export interface Secretary {
   doctor: Doctor;
 }
 export interface UserFilters {
-  sort_by?: 'first_name' | 'created_at';
+  sort_by?: 'first_name' | 'created_at' | 'role' | 'is_active' | 'email';
   sort_order?: 'asc' | 'desc';
 }
 export interface UpdateSecretaryData {
@@ -87,6 +87,30 @@ export interface RecentUser {
   created_at: string;
 }
 
+export interface RecentAppointment {
+  id: number;
+  patient_name: string;
+  doctor_name: string;
+  specialty: string;
+  date: string;
+  start_time: string;
+  status: string;
+  reason: string;
+}
+
+export interface MonthlyRegistration {
+  name: string;
+  inscriptions: number;
+}
+
+export interface TopDoctor {
+  id: number;
+  name: string;
+  specialty: string;
+  rating: number;
+  reviews_count: number;
+}
+
 export interface AdminStats {
   total_users: number;
   patients: number;
@@ -96,12 +120,17 @@ export interface AdminStats {
   active_users: number;
   inactive_users: number;
   recent_users: RecentUser[];
+  recent_appointments: RecentAppointment[];
+  monthly_registrations: MonthlyRegistration[];
+  top_doctors: TopDoctor[];
 }
 export interface Specialty {
   id: number;
   name: string;
   description: string | null;
 }
+export type NotificationType = 'CONFIRMATION' | 'RAPPEL' | 'MODIFICATION' | 'ANNULATION' | 'INFO';
+
 export interface AppNotification {
   id: number | string;
   icon: string;
@@ -109,6 +138,8 @@ export interface AppNotification {
   title: string;
   subtitle: string;
   time: string;
+  type?: NotificationType;
+  isRead?: boolean;
 }
 export interface Doctor {
   id: number;
@@ -196,6 +227,7 @@ export interface PatientAppointment {
   availability_id: number;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   reason: string | null;
+  consultation_type: 'in_person' | 'teleconsultation';
   created_at: string;
   doctor: Doctor;
   availability: Availability;
@@ -242,4 +274,33 @@ export interface Appointment {
 export interface CreateAppointmentData {
   availability_id: number;
   reason?: string;
+}
+
+export interface SecretaryDashboard {
+    doctor: {
+        id: number;
+        name: string;
+        specialty: string;
+    };
+
+    secretary: {
+        name: string;
+    };
+
+    stats: {
+        today_appointments: number;
+        confirmed_appointments: number;
+        pending_appointments: number;
+        patients: number;
+    };
+
+    today_schedule: {
+        id: number;
+        time: string;
+        patient: string;
+        status: string;
+        reason: string | null;
+    }[];
+
+    notifications: AppNotification[];
 }

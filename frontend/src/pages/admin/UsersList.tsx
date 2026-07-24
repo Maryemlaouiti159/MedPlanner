@@ -4,7 +4,7 @@ import CreateUserModal from '../../components/admin/CreateUserModal';
 import { adminUsersApi } from '../../api/adminUsers';
 import type { User, UserFilters, UserRole } from '../../types';
 import EditUserModal from '../../components/admin/EditUserModal';
-
+import { Filter } from "lucide-react";
 const ROLE_LABELS: Record<UserRole, string> = {
   patient: 'Patient',
   doctor: 'Médecin',
@@ -14,6 +14,10 @@ const ROLE_LABELS: Record<UserRole, string> = {
 
 // Rôles modifiables directement depuis cette page.
 // doctor/secretary passent par la page "Médecins" (profil requis).
+
+// Champs sur lesquels le tri est autorisé.
+// NOTE: vérifier que le backend accepte bien ces valeurs pour `sort_by`.
+type SortableField = 'first_name' | 'email' | 'role' | 'is_active' | 'created_at';
 
 export default function UsersList() {
   const [users, setUsers] = useState<User[]>([]);
@@ -34,7 +38,7 @@ export default function UsersList() {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
-  const [sortBy, setSortBy] = useState<'first_name' | 'created_at'>('first_name');
+  const [sortBy, setSortBy] = useState<SortableField>('first_name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
 
   // Debounce pour la recherche (évite un fetch à chaque frappe)
@@ -79,6 +83,23 @@ export default function UsersList() {
     fetchUsers(1);
   }, [fetchUsers]);
 
+  // Clic sur un en-tête de colonne triable :
+  // - si c'est déjà la colonne active, on inverse l'ordre
+  // - sinon on bascule sur la nouvelle colonne en ordre croissant
+  const handleSortClick = (field: SortableField) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortBy(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const sortIndicator = (field: SortableField) => {
+    if (sortBy !== field) return '↕️';
+    return sortOrder === 'asc' ? '▲' : '▼';
+  };
+
   const handleToggleStatus = async (userId: number) => {
     try {
       await adminUsersApi.toggleStatus(userId);
@@ -112,7 +133,6 @@ export default function UsersList() {
     }
   };
 
-
   const initials = (u: User) => {
     const f = u.first_name?.[0] ?? '';
     const l = u.last_name?.[0] ?? '';
@@ -130,17 +150,15 @@ export default function UsersList() {
         </div>
 
         <div className="header-actions">
-          <button className="filter-button" onClick={() => setShowFilters(!showFilters)}>
-            🔍 Filtrer
-          </button>
+  <button
+  className={`filter-button ${showFilters ? "active" : ""}`}
+  onClick={() => setShowFilters(!showFilters)}
+  title="Filtrer"
+>
+  <Filter size={20} strokeWidth={2.2} />
+</button>
 
-          <button
-            className="sort-button"
-            onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-            title={`Trier par ${sortBy === 'first_name' ? 'nom' : 'date'}`}
-          >
-            {sortOrder === 'asc' ? '⬆️ Croissant' : '⬇️ Décroissant'}
-          </button>
+         
 
           <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
             + Nouvel utilisateur
@@ -158,14 +176,7 @@ export default function UsersList() {
             onChange={(e) => setSearchInput(e.target.value)}
           />
 
-          <select
-            className="filter-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as 'first_name' | 'created_at')}
-          >
-            <option value="first_name">Trier par nom</option>
-            <option value="created_at">Trier par date</option>
-          </select>
+         
 
           <select
             className="filter-select"
@@ -190,8 +201,6 @@ export default function UsersList() {
             <option value="1">Actif</option>
             <option value="0">Inactif</option>
           </select>
-
-          
         </div>
       )}
 
@@ -205,11 +214,35 @@ export default function UsersList() {
             <table className="users-table">
               <thead>
                 <tr>
-                  <th>Utilisateur</th>
+                  <th
+                    className="sortable-column"
+                    onClick={() => handleSortClick('first_name')}
+                    title="Trier par nom"
+                  >
+                    Utilisateur <span className="sort-icon">{sortIndicator('first_name')}</span>
+                  </th>
                   <th>Téléphone</th>
-                  <th>Rôle</th>
-                  <th>Statut</th>
-                  <th>Inscrit le</th>
+                  <th
+                    className="sortable-column"
+                    onClick={() => handleSortClick('role')}
+                    title="Trier par rôle"
+                  >
+                    Rôle <span className="sort-icon">{sortIndicator('role')}</span>
+                  </th>
+                  <th
+                    className="sortable-column"
+                    onClick={() => handleSortClick('is_active')}
+                    title="Trier par statut"
+                  >
+                    Statut <span className="sort-icon">{sortIndicator('is_active')}</span>
+                  </th>
+                  <th
+                    className="sortable-column"
+                    onClick={() => handleSortClick('created_at')}
+                    title="Trier par date d'inscription"
+                  >
+                    Inscrit le <span className="sort-icon">{sortIndicator('created_at')}</span>
+                  </th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -229,7 +262,9 @@ export default function UsersList() {
                     </td>
                     <td>{u.phone || '—'}</td>
                     <td>
-                      <span className="role-badge">{ROLE_LABELS[u.role]}</span>
+                      <span className={`role-badge role-badge-${u.role}`}>
+                        {ROLE_LABELS[u.role]}
+                      </span>
                     </td>
                     <td>
                       <button

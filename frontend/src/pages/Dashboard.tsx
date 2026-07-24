@@ -1,18 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {  Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { patientAppointmentsApi } from '../api/patientAppointments';
 import { patientDoctorsApi } from '../api/patientDoctors';
-import { fetchNotificationsForRole } from '../api/notifications';
+import { fetchNotifications } from '../api/notifications';
 import type { PatientAppointment, Doctor, AppNotification } from '../types';
-
-function formatDayLabel(): string {
-  const formatted = new Intl.DateTimeFormat('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-  }).format(new Date());
-  return formatted.toUpperCase();
-}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -27,7 +21,7 @@ export default function Dashboard() {
     Promise.all([
       patientAppointmentsApi.list(),
       patientDoctorsApi.list(),
-      user ? fetchNotificationsForRole(user.role) : Promise.resolve([]),
+      user ? fetchNotifications() : Promise.resolve([]),
     ])
       .then(([apptRes, docRes, notifs]) => {
         setAppointments(apptRes.data);
@@ -48,6 +42,7 @@ export default function Dashboard() {
   const totalCount = appointments.length;
   const uniqueDoctors = new Set(appointments.map((a) => a.doctor.id)).size;
   const recommendedDoctors = doctors.slice(0, 4);
+  const nextAppointment = upcoming[0] ?? null;
 
   if (loading) {
     return (
@@ -57,20 +52,42 @@ export default function Dashboard() {
     );
   }
 
+  const onBook = () => navigate('/doctors');
+
   return (
     <DashboardLayout>
-      <div className="pdash-header">
-        <div>
-          <div className="pdash-date">{formatDayLabel()}</div>
-          <h1 className="pdash-greeting">Bonjour, {user?.first_name} 👋</h1>
-          <p className="pdash-subtitle">
-            Vous avez <strong>{upcoming.length} rendez-vous</strong> à venir.
+      <section className="patient-welcome-banner">
+        <div className="patient-welcome-left">
+          <p className="patient-welcome-badge">Bonjour</p>
+          <h2 className="patient-welcome-title">{user?.first_name} {user?.last_name}</h2>
+          <p className="patient-welcome-text">
+            Vous avez <span className="patient-welcome-strong">{upcoming.length} rendez-vous</span> à venir cette semaine.
           </p>
+          <button className="patient-welcome-button" onClick={onBook}>
+            <Plus size={16} /> Prendre un rendez-vous
+          </button>
         </div>
-        <button className="btn-cta" onClick={() => navigate('/doctors')}>
-          + Nouveau rendez-vous
-        </button>
-      </div>
+
+        <div className="patient-welcome-card">
+          {nextAppointment ? (
+            <>
+              <p className="patient-welcome-card-label">Prochain rendez-vous</p>
+              <h3 className="patient-welcome-card-title">
+                {new Date(nextAppointment.availability.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+              </h3>
+              <p className="patient-welcome-card-text">
+                {nextAppointment.availability.start_time.slice(0, 5)} · Dr. {nextAppointment.doctor.user.first_name} {nextAppointment.doctor.user.last_name}
+              </p>
+              <p className="patient-welcome-card-meta">{nextAppointment.doctor.specialty.name}</p>
+            </>
+          ) : (
+ <img
+          src="https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?w=280&h=180&fit=crop&auto=format"
+          alt="Medical"
+          className="hidden lg:block w-48 h-32 object-cover rounded-2xl opacity-80"
+        />          )}
+        </div>
+      </section>
 
       <div className="pdash-stats">
         <div className="pdash-stat-card">
@@ -109,7 +126,7 @@ export default function Dashboard() {
             <span className="pdash-stat-label">Notifications</span>
             <div className="pdash-stat-icon" style={{ background: 'rgba(245, 158, 11, 0.12)' }}>🔔</div>
           </div>
-          <div className="pdash-stat-value">{notifications.length}</div>
+          <div className="pdash-stat-value">{notifications.filter(n => !n.isRead).length}</div>
           <div className="pdash-stat-sub">Non lues</div>
         </div>
       </div>
@@ -174,7 +191,7 @@ export default function Dashboard() {
             <div className="pdash-action-icon" style={{ background: 'rgba(245, 158, 11, 0.12)' }}>🔔</div>
             <div className="pdash-action-text">
               <p>Notifications</p>
-              <span>{notifications.length} non lue{notifications.length > 1 ? 's' : ''}</span>
+              <span>{notifications.filter(n => !n.isRead).length} non lue{notifications.filter(n => !n.isRead).length > 1 ? 's' : ''}</span>
             </div>
             <span className="pdash-action-chevron">›</span>
           </button>

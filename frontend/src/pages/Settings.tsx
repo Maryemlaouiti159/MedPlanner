@@ -1,11 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { useSearchParams } from 'react-router-dom';
-import { fetchNotificationsForRole } from '../api/notifications';
-import type { AppNotification } from '../types';
-type Tab = 'account' | 'notifications' | 'security' | 'privacy';
+import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '../api/notifications';
+import type { AppNotification, NotificationType } from '../types';
+
+type Tab = 'account' | 'notifications' | 'security';
+
+// ─── Constantes ─────────────────────────────────────────────────────────────
 
 const ROLE_LABELS: Record<string, string> = {
   patient: 'Patient',
@@ -14,28 +17,61 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
 };
 
+const TYPE_META: Record<NotificationType, { label: string; badgeBg: string; badgeColor: string }> = {
+  CONFIRMATION: { label: 'CONFIRMATION', badgeBg: 'rgba(14,159,142,0.13)', badgeColor: '#0a8a7b' },
+  RAPPEL:       { label: 'RAPPEL',       badgeBg: 'rgba(107,90,205,0.13)', badgeColor: '#6B5ACD' },
+  MODIFICATION: { label: 'MODIFICATION', badgeBg: 'rgba(243,156,18,0.14)', badgeColor: '#d97706' },
+  ANNULATION:   { label: 'ANNULATION',   badgeBg: 'rgba(214,59,59,0.13)',  badgeColor: '#D63B3B' },
+  INFO:         { label: 'INFO',         badgeBg: 'rgba(27,79,114,0.12)',  badgeColor: '#1B4F72' },
+};
+
+const NOTIF_STORAGE_KEY = (userId: number) => `notif_read_ids_${userId}`;
+
+// ─── Composant principal ─────────────────────────────────────────────────────
+
 export default function Settings() {
   const [searchParams] = useSearchParams();
-    const initialTab = searchParams.get('tab') as Tab;
- const [activeTab, setActiveTab] = useState<Tab>(
+  const initialTab = searchParams.get('tab') as Tab | null;
+
+  const [activeTab, setActiveTab] = useState<Tab>(
     initialTab === 'notifications' ? 'notifications' : 'account'
   );
   const { user, refreshUser } = useAuth();
 
+  // ── Notifications state (toutes les hooks AVANT le return conditionnel) ──
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+
+  // Charge les notifications depuis le backend
+  useEffect(() => {
+    if (activeTab === 'notifications' && user) {
+      fetchNotifications().then(setNotifications);
+    }
+  }, [activeTab, user]);
+
+  const markRead = useCallback(async (id: string | number) => {
+    if (!user) return;
+    await markNotificationRead(id);
+    setNotifications((prev) =>
+      prev.map((n) =>
+        n.id === id ? { ...n, isRead: true } : n));
+  }, [user]);
+
+  const markAllRead = useCallback(async () => {
+    if (!user) return;
+    await markAllNotificationsRead();
+    setNotifications((prev) =>
+      prev.map((n) => ({ ...n, isRead: true })));
+  }, [user]);
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  // ── Guard après toutes les hooks ────────────────────────────────────────
   if (!user) return null;
 
-  const initials = `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
+  const initials   = `${user.first_name[0]}${user.last_name[0]}`.toUpperCase();
   const memberSince = new Intl.DateTimeFormat('fr-FR', { month: 'short', year: 'numeric' }).format(
     new Date(user.created_at)
   );
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-
-useEffect(() => {
-  if(activeTab === 'notifications' && user){
-    fetchNotificationsForRole(user.role)
-      .then(setNotifications);
-  }
-}, [activeTab, user]);
 
   return (
     <DashboardLayout>
@@ -45,6 +81,7 @@ useEffect(() => {
       </div>
 
       <div className="settings-layout">
+        {/* ── Onglets de navigation ── */}
         <div className="settings-tabs">
           <button
             className={`settings-tab ${activeTab === 'account' ? 'active' : ''}`}
@@ -57,6 +94,9 @@ useEffect(() => {
             onClick={() => setActiveTab('notifications')}
           >
             <span className="settings-tab-icon">🔔</span> Notifications
+            {unreadCount > 0 && (
+              <span className="settings-notif-badge">{unreadCount}</span>
+            )}
           </button>
           <button
             className={`settings-tab ${activeTab === 'security' ? 'active' : ''}`}
@@ -64,10 +104,12 @@ useEffect(() => {
           >
             <span className="settings-tab-icon">🛡️</span> Sécurité
           </button>
-        
         </div>
 
+        {/* ── Contenu ── */}
         <div className="settings-content">
+
+          {/* ── Onglet Compte ── */}
           {activeTab === 'account' && (
             <AccountTab
               user={user}
@@ -76,40 +118,78 @@ useEffect(() => {
               onUpdated={(u) => refreshUser(u)}
             />
           )}
+
+          {/* ── Onglet Sécurité ── */}
           {activeTab === 'security' && <SecurityTab />}
+
+          {/* ── Onglet Notifications (même design que le topbar/page dédiée) ── */}
           {activeTab === 'notifications' && (
-<div className="notifications-list">
+            <div>
+              {/* Header de la section */}
+              <div className="notif-settings-header">
+                <div>
+                  <span className="notif-page-eyebrow">ALERTES</span>
+                  <h2 className="settings-content-title" style={{ margin: 0 }}>Notifications</h2>
+                </div>
+                {unreadCount > 0 && (
+                  <button className="notif-page-mark-all" onClick={markAllRead}>
+                    Tout marquer comme lu ({unreadCount})
+                  </button>
+                )}
+              </div>
 
-{
-notifications.length === 0 ? (
-  <p>Aucune notification</p>
-) : (
- notifications.map((n)=>(
-   <div className="notification-card" key={n.id}>
+              {/* Liste */}
+              {notifications.length === 0 ? (
+                <div className="notif-page-empty">Aucune notification.</div>
+              ) : (
+                <div className="notif-page-list">
+                  {notifications.map((n) => {
+                    const isRead = n.isRead;
+                    const type   = n.type ?? 'INFO';
+                    const meta   = TYPE_META[type];
 
-      <div 
-        className="search-result-avatar"
-        style={{
-          background:n.iconBg
-        }}
-      >
-        {n.icon}
-      </div>
+                    return (
+                      <div
+                        key={n.id}
+                        className={`notif-page-card${isRead ? '' : ' notif-page-card--unread'}`}
+                        onClick={() => !isRead && markRead(n.id)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && !isRead && markRead(n.id)}
+                      >
+                        {/* Icône */}
+                        <div
+                          className="notif-page-card-icon"
+                          style={{ background: n.iconBg }}
+                        >
+                          {n.icon}
+                        </div>
 
-      <div>
-        <h3>{n.title}</h3>
-        <p>{n.subtitle}</p>
-        <small>{n.time}</small>
-      </div>
+                        {/* Corps */}
+                        <div className="notif-page-card-body">
+                          <span
+                            className="notif-page-badge"
+                            style={{ background: meta.badgeBg, color: meta.badgeColor }}
+                          >
+                            {meta.label}
+                          </span>
+                          <p className="notif-page-card-title">{n.title}</p>
+                          <span className="notif-page-card-sub">{n.subtitle}</span>
+                        </div>
 
-   </div>
- ))
-)
+                        {/* Méta (heure + point non-lu) */}
+                        <div className="notif-page-card-meta">
+                          <span className="notif-page-card-time">{n.time}</span>
+                          {!isRead && <span className="notif-page-dot" aria-label="Non lu" />}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
-}
-
-</div>          )}
-          
         </div>
       </div>
     </DashboardLayout>

@@ -1,8 +1,17 @@
 import api from './axios';
 import type { Specialty } from '../types';
 
+export interface SpecialtyWithCounts {
+  id: number;
+  name: string;
+  description?: string;
+  doctors_count: number;
+  slots_count: number;
+}
+
 export const specialtiesApi = {
   list: () => api.get<Specialty[]>('/patient/specialties'),
+  listAdmin: () => api.get<SpecialtyWithCounts[]>('/admin/specialties'),
 
   create: (data: { name: string; description?: string }) =>
     api.post<Specialty>('/admin/specialties', data),

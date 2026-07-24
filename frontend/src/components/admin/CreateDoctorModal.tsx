@@ -1,7 +1,7 @@
 import { adminDoctorsApi } from '../../api/adminDoctors.ts';
 import { useEffect, useState } from 'react';
-import { specialtiesApi } from '../../api/specialties';
-import type { CreateDoctorData, Specialty } from '../../types';
+import { specialtiesApi, type SpecialtyWithCounts } from '../../api/specialties';
+import type { CreateDoctorData } from '../../types';
 interface Props {
   onClose: () => void;
   onCreated: () => void;
@@ -18,10 +18,13 @@ export default function CreateDoctorModal({ onClose, onCreated }: Props) {
   const [form, setForm] = useState<CreateDoctorData>(emptyForm);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [submitting, setSubmitting] = useState(false);
-const [specialties, setSpecialties] = useState<Specialty[]>([]);
-useEffect(() => {
-  specialtiesApi.list().then((res) => setSpecialties(res.data)).catch(console.error);
-}, []);
+  const [specialties, setSpecialties] = useState<SpecialtyWithCounts[]>([]);
+
+  useEffect(() => {
+    specialtiesApi.listAdmin()
+      .then((res) => setSpecialties(res.data))
+      .catch(console.error);
+  }, []);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);

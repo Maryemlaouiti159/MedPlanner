@@ -9,6 +9,7 @@ export interface NavItem {
 export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   admin: [
     { label: 'Tableau de bord', path: '/dashboard', icon: '📊' },
+    { label: 'Rendez-vous', path: '/admin/appointments', icon: '📅' },
     { label: 'Utilisateurs', path: '/admin/users', icon: '👥' },
     { label: 'Médecins', path: '/admin/doctors', icon: '🩺' },
     { label: 'Secrétaires', path: '/admin/secretaries', icon: '📋' },
@@ -19,7 +20,6 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
     { label: 'Tableau de bord', path: '/dashboard', icon: '📊' },
     { label: 'Rendez-vous', path: '/appointments', icon: '📅' },
     { label: 'Médecins', path: '/doctors', icon: '🩺' },
-    { label: 'Historique', path: '/history', icon: '📋' },
     { label: 'Paramètres', path: '/settings', icon: '⚙️' },
   ],
   doctor: [
@@ -31,7 +31,7 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
   secretary: [
     { label: 'Tableau de bord', path: '/dashboard', icon: '📊' },
-    { label: 'Rendez-vous', path: '/appointments', icon: '📅' },
+    { label: 'Rendez-vous',     path: "/secretary/appointments", icon: '📅' },
     { label: 'Patients', path: '/patients', icon: '👥' },
     { label: 'Paramètres', path: '/settings', icon: '⚙️' },
   ],

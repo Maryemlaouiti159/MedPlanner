@@ -11,7 +11,7 @@ export default function CreateUserModal({ onClose, onCreated }: Props) {
   const [form, setForm] = useState<CreateUserData>({
     first_name: '',
     last_name: '',
-    email: '',
+    email: '', 
     phone: '',
     password: '',
     role: 'patient',

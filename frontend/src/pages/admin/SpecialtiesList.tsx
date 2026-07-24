@@ -1,20 +1,36 @@
 import { useEffect, useState, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import { specialtiesApi } from '../../api/specialties';
-import type { Specialty } from '../../types';
+import { specialtiesApi, type SpecialtyWithCounts } from '../../api/specialties';
+
+const specialtyIcons: Record<string, string> = {
+  'Cardiologie': '🖤',
+  'Pédiatrie': '🫀',
+  'Orthopédie': '🦴',
+  'Dermatologie': '🔬',
+  'Neurologie': '🧠',
+  'Ophtalmologie': '👁️',
+  'Médecine générale': '👨‍⚕️',
+  'Gynécologie': '👩‍⚕️',
+  'Psychiatrie': '🧑‍💻',
+  'ORL': '👂',
+  'Radiologie': '📷',
+  'Dentisterie': '🦷',
+};
+
 export default function SpecialtiesList() {
-  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [specialties, setSpecialties] = useState<SpecialtyWithCounts[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Specialty | null>(null);
+  const [editing, setEditing] = useState<SpecialtyWithCounts | null>(null);
   const [form, setForm] = useState({ name: '', description: '' });
   const [error, setError] = useState('');
-const [showDeleteModal, setShowDeleteModal] = useState(false);
-const [specialtyToDelete, setSpecialtyToDelete] = useState<Specialty | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [specialtyToDelete, setSpecialtyToDelete] = useState<SpecialtyWithCounts | null>(null);
+
   const fetchSpecialties = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await specialtiesApi.list();
+      const res = await specialtiesApi.listAdmin();
       setSpecialties(res.data);
     } catch (err) {
       console.error(err);
@@ -32,7 +48,7 @@ const [specialtyToDelete, setSpecialtyToDelete] = useState<Specialty | null>(nul
     setShowForm(true);
   };
 
-  const openEdit = (s: Specialty) => {
+  const openEdit = (s: SpecialtyWithCounts) => {
     setEditing(s);
     setForm({ name: s.name, description: s.description ?? '' });
     setError('');
@@ -55,132 +71,289 @@ const [specialtyToDelete, setSpecialtyToDelete] = useState<Specialty | null>(nul
     }
   };
 
-  const handleDelete = (s: Specialty) => {
-  setSpecialtyToDelete(s);
-  setShowDeleteModal(true);
-};
+  const handleDelete = (s: SpecialtyWithCounts) => {
+    setSpecialtyToDelete(s);
+    setShowDeleteModal(true);
+  };
 
-const confirmDelete = async () => {
-  if (!specialtyToDelete) return;
+  const confirmDelete = async () => {
+    if (!specialtyToDelete) return;
 
-  try {
-    await specialtiesApi.remove(specialtyToDelete.id);
-    fetchSpecialties();
-  } catch (err: any) {
-    alert(err.response?.data?.message ?? 'Erreur lors de la suppression.');
-  } finally {
-    setShowDeleteModal(false);
-    setSpecialtyToDelete(null);
-  }
-};
+    try {
+      await specialtiesApi.remove(specialtyToDelete.id);
+      fetchSpecialties();
+    } catch (err: any) {
+      alert(err.response?.data?.message ?? 'Erreur lors de la suppression.');
+    } finally {
+      setShowDeleteModal(false);
+      setSpecialtyToDelete(null);
+    }
+  };
 
   return (
     <DashboardLayout>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Spécialités</h1>
-          <p className="page-subtitle">{specialties.length} spécialité{specialties.length > 1 ? 's' : ''}</p>
+      <div style={{ padding: '24px 32px', maxWidth: '1400px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+          <div>
+            <h1 style={{ fontSize: '32px', fontWeight: 700, color: '#1f2937', margin: '0 0 8px 0' }}>
+              Spécialités médicales
+            </h1>
+            <p style={{ fontSize: '16px', color: '#9ca3af', margin: 0 }}>
+              Gérer les spécialités et leurs médecins associés
+            </p>
+          </div>
+          <button
+            onClick={openCreate}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 24px',
+              borderRadius: '12px',
+              background: '#2563eb',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            <span style={{ fontSize: '20px' }}>+</span>
+            Ajouter une spécialité
+          </button>
         </div>
-        <button className="btn-primary" onClick={openCreate}>+ Nouvelle spécialité</button>
-      </div>
 
-      <div className="users-table-card">
         {loading ? (
-          <div className="empty-state">Chargement...</div>
+          <div style={{ padding: '80px', textAlign: 'center', color: '#9ca3af' }}>Chargement...</div>
         ) : specialties.length === 0 ? (
-          <div className="empty-state">Aucune spécialité.</div>
+          <div style={{ padding: '80px', textAlign: 'center', color: '#9ca3af' }}>Aucune spécialité.</div>
         ) : (
-          <table className="users-table">
-            <thead>
-              <tr>
-                <th>Nom</th>
-                <th>Description</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {specialties.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.name}</td>
-                  <td>{s.description || '—'}</td>
-                  <td>
-                    <div className="table-actions">
-                      <button className="icon-btn" onClick={() => openEdit(s)} title="Modifier">✏️</button>
-                      <button className="icon-btn danger" onClick={() => handleDelete(s)} title="Supprimer">🗑️</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+            {specialties.map((s) => (
+              <div
+                key={s.id}
+                style={{
+                  background: 'white',
+                  borderRadius: '20px',
+                  padding: '28px',
+                  border: '1px solid #e5e7eb',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                }}
+              >
+                <div style={{ width: '64px', height: '64px', borderRadius: '16px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', marginBottom: '20px' }}>
+                  {specialtyIcons[s.name] || '🏥'}
+                </div>
+                <h3 style={{ fontSize: '22px', fontWeight: 600, color: '#1f2937', margin: '0 0 20px 0' }}>{s.name}</h3>
+                <div style={{ display: 'flex', gap: '24px', marginBottom: '24px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '28px', fontWeight: 700, color: '#2563eb', marginBottom: '4px' }}>{s.doctors_count}</div>
+                    <div style={{ fontSize: '14px', color: '#9ca3af' }}>Médecins</div>
+                  </div>
+                  <div style={{ width: '1px', background: '#e5e7eb' }}></div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '28px', fontWeight: 700, color: '#059669', marginBottom: '4px' }}>{s.slots_count}</div>
+                    <div style={{ fontSize: '14px', color: '#9ca3af' }}>Créneaux</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <button
+                    onClick={() => openEdit(s)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      border: '1px solid #e5e7eb',
+                      background: '#f8fafc',
+                      color: '#4b5563',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    onClick={() => handleDelete(s)}
+                    style={{
+                      flex: 1,
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      border: '1px solid #fee2e2',
+                      background: '#fef2f2',
+                      color: '#ef4444',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showForm && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+            }}
+            onClick={() => setShowForm(false)}
+          >
+            <div
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '28px',
+                width: '100%',
+                maxWidth: '420px',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 style={{ fontSize: '22px', fontWeight: 600, margin: '0 0 20px 0' }}>
+                {editing ? 'Modifier' : 'Nouvelle'} spécialité
+              </h2>
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <input
+                  placeholder="Nom (ex: Cardiologie)"
+                  required
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '14px',
+                  }}
+                />
+                <textarea
+                  placeholder="Description (optionnel)"
+                  value={form.description}
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
+                  style={{
+                    padding: '12px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '14px',
+                    minHeight: '80px',
+                    resize: 'vertical',
+                  }}
+                />
+                {error && <span style={{ color: '#ef4444', fontSize: '14px' }}>{error}</span>}
+                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowForm(false)}
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      border: '1px solid #e5e7eb',
+                      background: 'white',
+                      color: '#4b5563',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '10px 20px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: '#2563eb',
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {editing ? 'Enregistrer' : 'Créer'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {showDeleteModal && specialtyToDelete && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              background: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                background: 'white',
+                borderRadius: '16px',
+                padding: '28px',
+                width: '100%',
+                maxWidth: '420px',
+              }}
+            >
+              <h3 style={{ fontSize: '18px', fontWeight: 600, margin: '0 0 12px 0' }}>
+                Supprimer la spécialité
+              </h3>
+              <p style={{ fontSize: '14px', color: '#4b5563', margin: '0 0 8px 0' }}>
+                Voulez-vous vraiment supprimer la spécialité <strong>"{specialtyToDelete.name}"</strong> ?
+              </p>
+              <p style={{ fontSize: '14px', color: '#ef4444', margin: '0 0 20px 0' }}>
+                Cette action est irréversible.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setSpecialtyToDelete(null);
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    border: '1px solid #e5e7eb',
+                    background: 'white',
+                    color: '#4b5563',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  style={{
+                    padding: '10px 20px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    background: '#ef4444',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                  }}
+                >
+                  Supprimer
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
-
-      {showForm && (
-        <div className="modal-overlay" onClick={() => setShowForm(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title">{editing ? 'Modifier' : 'Nouvelle'} spécialité</h2>
-            <form onSubmit={handleSubmit} className="modal-form">
-              <input
-                className="form-input"
-                placeholder="Nom (ex: Cardiologie)"
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-              />
-              <textarea
-                className="form-input"
-                placeholder="Description (optionnel)"
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-              />
-              {error && <span className="form-error">{error}</span>}
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Annuler</button>
-                <button type="submit" className="btn-primary">{editing ? 'Enregistrer' : 'Créer'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-{showDeleteModal && specialtyToDelete && (
-  <div className="modal-overlay">
-    <div className="delete-modal">
-      <h3>Supprimer la spécialité</h3>
-
-      <p>
-        Voulez-vous vraiment supprimer la spécialité
-        <strong> "{specialtyToDelete.name}"</strong> ?
-      </p>
-
-      <p className="warning-text">
-        Cette action est irréversible.
-      </p>
-
-      <div className="modal-actions">
-        <button
-          className="cancel-btn"
-          onClick={() => {
-            setShowDeleteModal(false);
-            setSpecialtyToDelete(null);
-          }}
-        >
-          Annuler
-        </button>
-
-        <button
-          className="confirm-btn"
-          onClick={confirmDelete}
-        >
-          Supprimer
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
-
-
     </DashboardLayout>
   );
 }

@@ -1,67 +1,53 @@
 import api from './axios';
-import { adminDashboardApi } from './adminDashboard';
-import type { AppNotification, UserRole } from '../types';
+import type { AppNotification, NotificationType } from '../types';
 
-function timeAgo(dateStr: string): string {
+export function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
+  const minutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-  if (days === 0) return "Aujourd'hui";
+
+  if (minutes < 60) return `Il y a ${minutes}min`;
+  if (hours < 24) return `Il y a ${hours}h`;
   if (days === 1) return 'Hier';
-  return `Il y a ${days} jours`;
+  if (days < 30) return `Il y a ${days}j`;
+  const date = new Date(dateStr);
+  return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
 }
 
-export async function fetchNotificationsForRole(role: UserRole): Promise<AppNotification[]> {
-  if (role === 'admin') {
-    const res = await adminDashboardApi.stats();
-    return res.data.recent_users.map((u) => ({
-      id: u.id,
-      icon: '👤',
-      iconBg: 'var(--accent-bg)',
-      title: `${u.first_name} ${u.last_name} a rejoint MedPlanner`,
-      subtitle: u.role === 'doctor' ? 'Nouveau médecin' : u.role === 'secretary' ? 'Nouvelle secrétaire' : 'Nouveau patient',
-      time: timeAgo(u.created_at),
-    }));
-  }
+// Interface for backend notification response
+interface BackendNotification {
+  id: number;
+  user_id: number;
+  appointment_id: number | null;
+  type: string;
+  title: string;
+  subtitle: string | null;
+  icon: string | null;
+  icon_bg: string | null;
+  read_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
-  if (role === 'patient') {
-    // Placeholder en attendant le module rendez-vous : structure prête à brancher
-    return [
-      {
-        id: 'welcome',
-        icon: '👋',
-        iconBg: 'var(--accent-bg)',
-        title: 'Bienvenue sur MedPlanner',
-        subtitle: 'Réservez votre premier rendez-vous',
-        time: 'Maintenant',
-      },
-    ];
-  }
+export async function fetchNotifications(): Promise<AppNotification[]> {
+  const response = await api.get<BackendNotification[]>('/notifications');
+  return response.data.map((n) => ({
+    id: n.id,
+    icon: n.icon || '🔔',
+    iconBg: n.icon_bg || '#EBF4F8',
+    title: n.title,
+    subtitle: n.subtitle || '',
+    time: timeAgo(n.created_at),
+    type: n.type as NotificationType,
+    isRead: n.read_at !== null,
+  }));
+}
 
-  if (role === 'doctor') {
-    return [
-      {
-        id: 'welcome',
-        icon: '🩺',
-        iconBg: 'var(--lilac-bg)',
-        title: 'Votre profil est actif',
-        subtitle: 'Les patients peuvent vous trouver',
-        time: 'Maintenant',
-      },
-    ];
-  }
+export async function markNotificationRead(id: string | number): Promise<void> {
+  await api.patch(`/notifications/${id}/read`);
+}
 
-  if (role === 'secretary') {
-    return [
-      {
-        id: 'welcome',
-        icon: '📋',
-        iconBg: 'var(--success-bg)',
-        title: 'Compte secrétaire activé',
-        subtitle: 'Gérez le planning de votre médecin',
-        time: 'Maintenant',
-      },
-    ];
-  }
-
-  return [];
+export async function markAllNotificationsRead(): Promise<void> {
+  await api.patch('/notifications/read-all');
 }
