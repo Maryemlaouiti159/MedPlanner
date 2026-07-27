@@ -14,24 +14,40 @@ use App\Repositories\Contracts\AuthRepositoryInterface;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use App\Repositories\Contracts\NotificationRepositoryInterface;
 
 class AuthController extends Controller
 {
     public function __construct(
-        protected AuthRepositoryInterface $authRepository
+        protected AuthRepositoryInterface $authRepository,
+        protected NotificationRepositoryInterface $notificationRepository
     ) {}
 
-    // POST /api/register
-    public function register(RegisterRequest $request)
-    {
-        $user = $this->authRepository->createUser($request->validated());
-        $token = $this->authRepository->createToken($user);
+ public function register(RegisterRequest $request)
+{
+    $user = $this->authRepository->createUser($request->validated());
 
-        return response()->json([
-            'user'  => $user,
-            'token' => $token,
-        ], 201);
+
+    // Notification aux administrateurs lorsqu'un patient s'inscrit
+    if ($user->role === 'patient') {
+
+        $this->notificationRepository->createForAdminEvent(
+            'new_patient',
+            [
+                'patient' => $user,
+            ]
+        );
+
     }
+
+
+    $token = $this->authRepository->createToken($user);
+
+    return response()->json([
+        'user'  => $user,
+        'token' => $token,
+    ], 201);
+}
 
     // POST /api/login
     public function login(LoginRequest $request)

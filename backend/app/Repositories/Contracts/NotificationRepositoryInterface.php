@@ -13,4 +13,5 @@ interface NotificationRepositoryInterface
     public function markAsRead(Notification $notification): void;
     public function markAllAsRead(User $user): void;
     public function createForAppointmentEvent(Appointment $appointment, string $eventType);
+    public function createForAdminEvent(string $eventType, array $context): void;
 }

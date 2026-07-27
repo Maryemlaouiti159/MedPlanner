@@ -37,6 +37,9 @@ $this->app->bind(AppointmentRepositoryInterface::class, AppointmentRepository::c
 $this->app->bind(NotificationRepositoryInterface::class, NotificationRepository::class);
         $this->app->bind(DoctorDashboardRepositoryInterface::class, DoctorDashboardRepository::class);
 $this->app->bind(SecretaryAppointmentRepositoryInterface::class, SecretaryAppointmentRepository::class);
-
+$this->app->bind(
+    NotificationRepositoryInterface::class,
+    NotificationRepository::class
+);
     }
 }

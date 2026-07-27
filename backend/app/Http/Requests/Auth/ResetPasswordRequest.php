@@ -14,9 +14,39 @@ class ResetPasswordRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email'    => ['required', 'string', 'email'],
-            'code'     => ['required', 'string', 'size:6'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'email' => [
+                'required',
+                'string',
+                'email'
+            ],
+
+            'code' => [
+                'required',
+                'string',
+                'size:6'
+            ],
+
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed'
+            ],
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'email.required' => 'L\'adresse email est obligatoire.',
+            'email.email' => 'L\'adresse email n\'est pas valide.',
+
+            'code.required' => 'Le code de réinitialisation est obligatoire.',
+            'code.size' => 'Le code doit contenir exactement 6 caractères.',
+
+            'password.required' => 'Le nouveau mot de passe est obligatoire.',
+            'password.min' => 'Le mot de passe doit contenir au moins 8 caractères.',
+            'password.confirmed' => 'La confirmation du mot de passe ne correspond pas.',
         ];
     }
 }

@@ -10,12 +10,14 @@ use App\Repositories\Contracts\UserRepositoryInterface;
 use Illuminate\Http\Request;
 use App\Http\Requests\StoreUserRequest;
 
+use App\Repositories\Contracts\NotificationRepositoryInterface;
+
 class UserController extends Controller
 {
-    public function __construct(
-        protected UserRepositoryInterface $userRepository
-    ) {}
-
+  public function __construct(
+    protected UserRepositoryInterface $userRepository,
+    protected NotificationRepositoryInterface $notificationRepository
+) {}
     public function index(Request $request)
     {
 $filters = $request->only([
@@ -38,6 +40,14 @@ public function store(StoreUserRequest $request)
 {
     $user = $this->userRepository->createUser(
         $request->validated()
+    );
+
+    // Notification pour tous les administrateurs
+    $this->notificationRepository->createForAdminEvent(
+        'new_patient',
+        [
+            'patient' => $user,
+        ]
     );
 
     return response()->json([
