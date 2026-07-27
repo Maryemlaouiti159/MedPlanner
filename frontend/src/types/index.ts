@@ -129,8 +129,14 @@ export interface Specialty {
   name: string;
   description: string | null;
 }
-export type NotificationType = 'CONFIRMATION' | 'RAPPEL' | 'MODIFICATION' | 'ANNULATION' | 'INFO';
-
+export type NotificationType =
+  | 'CONFIRMATION'
+  | 'RAPPEL'
+  | 'MODIFICATION'
+  | 'ANNULATION'
+  | 'INFO'
+  | 'NOUVEAU_PATIENT'
+  | 'NOUVEL_AJOUT';
 export interface AppNotification {
   id: number | string;
   icon: string;

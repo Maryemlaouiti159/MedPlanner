@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import CreateUserModal from '../../components/admin/CreateUserModal';
 import { adminUsersApi } from '../../api/adminUsers';
+import { useNavigate } from 'react-router-dom';
 import type { User, UserFilters, UserRole } from '../../types';
 import EditUserModal from '../../components/admin/EditUserModal';
 import { Filter } from "lucide-react";
@@ -27,7 +28,7 @@ export default function UsersList() {
   const [total, setTotal] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-
+const navigate = useNavigate();
   const [filters, setFilters] = useState<UserFilters>({
     role: '',
     search: '',
@@ -161,7 +162,7 @@ export default function UsersList() {
          
 
           <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
-            + Nouvel utilisateur
+            + Nouvel patient
           </button>
         </div>
       </div>
@@ -248,14 +249,20 @@ export default function UsersList() {
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr key={u.id}>
-                    <td>
+<tr
+  key={u.id}
+  onClick={() => navigate(`/admin/users/${u.id}`)}
+  className="clickable-row"
+>                    <td>
                       <div className="user-cell">
                         <div className="user-cell-avatar">{initials(u)}</div>
                         <div>
-                          <div className="user-cell-name">
-                            {u.first_name} {u.last_name}
-                          </div>
+<div
+  className="user-cell-name user-clickable"
+  onClick={() => navigate(`/admin/users/${u.id}`)}
+>
+  {u.first_name} {u.last_name}
+</div>
                           <div className="user-cell-email">{u.email}</div>
                         </div>
                       </div>

@@ -38,7 +38,7 @@ export default function CreateUserModal({ onClose, onCreated }: Props) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h2 className="modal-title">Nouvel utilisateur</h2>
+<h2 className="modal-title">Nouveau patient</h2>
         <form onSubmit={handleSubmit} className="modal-form">
           <div className="form-row">
             <input
@@ -85,14 +85,7 @@ export default function CreateUserModal({ onClose, onCreated }: Props) {
           />
           {errors.password && <span className="form-error">{errors.password[0]}</span>}
 
-          <select
-            className="form-input"
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value as 'patient' | 'admin' })}
-          >
-            <option value="patient">Patient</option>
-            <option value="admin">Admin</option>
-          </select>
+    
           <p className="form-hint">
             Pour créer un médecin (avec sa secrétaire), utilisez la page "Médecins".
           </p>

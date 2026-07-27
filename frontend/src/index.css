@@ -5830,3 +5830,12 @@ td {
   font-size: 0.75em;
   margin-left: 4px;
 }
+.user-clickable {
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.user-clickable:hover {
+  color: #2563eb;
+  text-decoration: underline;
+}

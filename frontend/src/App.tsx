@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
-
+import GuestRoute from './components/GuestRoute';
 import Login from './pages/Login';
 
 import Register from './pages/Register';
@@ -49,10 +49,41 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+         <Route
+  path="/"
+  element={
+    <GuestRoute>
+      <Home />
+    </GuestRoute>
+  }
+/>
+
+<Route
+  path="/login"
+  element={
+    <GuestRoute>
+      <Login />
+    </GuestRoute>
+  }
+/>
+
+<Route
+  path="/register"
+  element={
+    <GuestRoute>
+      <Register />
+    </GuestRoute>
+  }
+/>
+
+<Route
+  path="/forgot-password"
+  element={
+    <GuestRoute>
+      <ForgotPassword />
+    </GuestRoute>
+  }
+/>
            <Route
             path="/dashboard"
             element={

@@ -21,9 +21,7 @@ const ROLE_LABELS: Record<string, string> = {
   patient: 'Patient', doctor: 'Médecin', secretary: 'Secrétaire', admin: 'Administrateur',
 };
 
-function getLastSeenKey(userId: number) {
-  return `notif_last_seen_id_${userId}`;
-}
+
 
 export default function Topbar({ toggleSidebar }: TopbarProps) {
   const { user, logout } = useAuth();
@@ -185,10 +183,13 @@ const confirmLogout = async () => {
 
           {showAvatarMenu && (
             <div className="avatar-dropdown">
-              <div
-                className="avatar-dropdown-header"
-                onClick={() => { setShowAvatarMenu(false); navigate('/profile'); }}
-              >
+             <div
+  className="avatar-dropdown-header"
+  onClick={() => { 
+    setShowAvatarMenu(false); 
+    navigate(`/admin/users/${user.id}`); 
+  }}
+>
                 <div className="search-result-avatar">{initials}</div>
                 <div>
                   <p>{user.first_name} {user.last_name}</p>

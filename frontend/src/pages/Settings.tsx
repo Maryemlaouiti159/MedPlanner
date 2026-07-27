@@ -18,14 +18,15 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 const TYPE_META: Record<NotificationType, { label: string; badgeBg: string; badgeColor: string }> = {
-  CONFIRMATION: { label: 'CONFIRMATION', badgeBg: 'rgba(14,159,142,0.13)', badgeColor: '#0a8a7b' },
-  RAPPEL:       { label: 'RAPPEL',       badgeBg: 'rgba(107,90,205,0.13)', badgeColor: '#6B5ACD' },
-  MODIFICATION: { label: 'MODIFICATION', badgeBg: 'rgba(243,156,18,0.14)', badgeColor: '#d97706' },
-  ANNULATION:   { label: 'ANNULATION',   badgeBg: 'rgba(214,59,59,0.13)',  badgeColor: '#D63B3B' },
-  INFO:         { label: 'INFO',         badgeBg: 'rgba(27,79,114,0.12)',  badgeColor: '#1B4F72' },
+  CONFIRMATION:    { label: 'CONFIRMATION',    badgeBg: 'rgba(14,159,142,0.13)', badgeColor: '#0a8a7b' },
+  RAPPEL:          { label: 'RAPPEL',          badgeBg: 'rgba(107,90,205,0.13)', badgeColor: '#6B5ACD' },
+  MODIFICATION:    { label: 'MODIFICATION',    badgeBg: 'rgba(243,156,18,0.14)', badgeColor: '#d97706' },
+  ANNULATION:      { label: 'ANNULATION',      badgeBg: 'rgba(214,59,59,0.13)',  badgeColor: '#D63B3B' },
+  INFO:            { label: 'INFO',            badgeBg: 'rgba(27,79,114,0.12)',  badgeColor: '#1B4F72' },
+  NOUVEAU_PATIENT: { label: 'NOUVEAU PATIENT', badgeBg: 'rgba(5,150,105,0.13)',  badgeColor: '#059669' },
+  NOUVEL_AJOUT:    { label: 'NOUVEL AJOUT',    badgeBg: 'rgba(37,99,235,0.13)',  badgeColor: '#2563eb' },
 };
 
-const NOTIF_STORAGE_KEY = (userId: number) => `notif_read_ids_${userId}`;
 
 // ─── Composant principal ─────────────────────────────────────────────────────
 
@@ -140,7 +141,7 @@ export default function Settings() {
 
               {/* Liste */}
               {notifications.length === 0 ? (
-                <div className="notif-page-empty">Aucune notification.</div>
+                <div className="notif-page-empty">Chargement…</div>
               ) : (
                 <div className="notif-page-list">
                   {notifications.map((n) => {
