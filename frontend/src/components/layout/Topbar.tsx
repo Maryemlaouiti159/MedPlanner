@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminUsersApi } from '../../api/adminUsers';
+import { patientDoctorsApi } from '../../api/patientDoctors';
 import { fetchNotifications } from '../../api/notifications';
-import type { User, AppNotification } from '../../types';
+import type { User, AppNotification, Doctor } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 
 type TopbarProps = {
@@ -31,6 +32,7 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<User[]>([]);
+  const [doctorResults, setDoctorResults] = useState<Doctor[]>([]);
   const [showResults, setShowResults] = useState(false);
 
   const [showNotifs, setShowNotifs] = useState(false);
@@ -46,15 +48,30 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
   const initials = user ? `${user.first_name[0]}${user.last_name[0]}`.toUpperCase() : '';
   const role = user?.role ?? 'patient';
 
-  const runSearch = useCallback((query: string) => {
-    if (query.trim().length < 2 || role !== 'admin') {
-      setResults([]);
-      return;
-    }
+ const runSearch = useCallback((query: string) => {
+  if (query.trim().length < 2) {
+    setResults([]);
+    setDoctorResults([]);
+    return;
+  }
+
+  if (role === 'admin') {
     adminUsersApi.list({ search: query, page: 1 })
       .then((res) => setResults(res.data.data.slice(0, 6)))
       .catch(() => setResults([]));
-  }, [role]);
+  } else if (role === 'patient') {
+    patientDoctorsApi.list()
+      .then((res) => {
+        const q = query.trim().toLowerCase();
+        const filtered = res.data.filter((d) =>
+          `${d.user.first_name} ${d.user.last_name}`.toLowerCase().includes(q) ||
+          d.specialty.name.toLowerCase().includes(q)
+        );
+        setDoctorResults(filtered.slice(0, 6));
+      })
+      .catch(() => setDoctorResults([]));
+  }
+}, [role]);
 
   useEffect(() => {
     const timeout = setTimeout(() => runSearch(search), 350);
@@ -98,6 +115,12 @@ const handleSelectResult = (u: User) => {
   setSearch('');
   navigate(`/admin/users/${u.id}`);
 };
+
+const handleSelectDoctor = (d: Doctor) => {
+  setShowResults(false);
+  setSearch('');
+  navigate(`/doctors/${d.id}`);
+};
  
 
   if (!user) return null;
@@ -133,6 +156,26 @@ const confirmLogout = async () => {
                   <div className="search-result-info">
                     <p>{u.first_name} {u.last_name}</p>
                     <span>{ROLE_LABELS[u.role]} · {u.email}</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {showResults && role === 'patient' && search.trim().length >= 2 && (
+          <div className="search-dropdown">
+            {doctorResults.length === 0 ? (
+              <div className="search-empty">Aucun résultat pour "{search}"</div>
+            ) : (
+              doctorResults.map((d) => (
+                <div key={d.id} className="search-result-item" onClick={() => handleSelectDoctor(d)}>
+                  <div className="search-result-avatar">
+                    {d.user.first_name[0]}{d.user.last_name[0]}
+                  </div>
+                  <div className="search-result-info">
+                    <p>Dr. {d.user.first_name} {d.user.last_name}</p>
+                    <span>{d.specialty.name}</span>
                   </div>
                 </div>
               ))
@@ -183,11 +226,16 @@ const confirmLogout = async () => {
 
           {showAvatarMenu && (
             <div className="avatar-dropdown">
-             <div
+            <div
   className="avatar-dropdown-header"
-  onClick={() => { 
-    setShowAvatarMenu(false); 
-    navigate(`/admin/users/${user.id}`); 
+  onClick={() => {
+    setShowAvatarMenu(false);
+
+    if (user.role === 'admin') {
+      navigate(`/admin/users/${user.id}`);
+    } else {
+      navigate('/profile');
+    }
   }}
 >
                 <div className="search-result-avatar">{initials}</div>

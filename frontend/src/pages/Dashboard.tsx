@@ -24,7 +24,7 @@ export default function Dashboard() {
       user ? fetchNotifications() : Promise.resolve([]),
     ])
       .then(([apptRes, docRes, notifs]) => {
-        setAppointments(apptRes.data);
+setAppointments(apptRes.data.data);
         setDoctors(docRes.data);
         setNotifications(notifs);
       })

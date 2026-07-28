@@ -237,6 +237,8 @@ export interface PatientAppointment {
   created_at: string;
   doctor: Doctor;
   availability: Availability;
+  video_room_id: string | null;
+  video_link: string | null;
 }
 
 export interface CreateAppointmentData {

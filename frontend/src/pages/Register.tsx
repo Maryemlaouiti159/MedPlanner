@@ -163,7 +163,16 @@ export default function Register() {
           <p style={{ fontSize: '11px', color: 'var(--text)', marginBottom: '8px', opacity: 0.7 }}>
             Un projet réalisé chez
           </p>
-          <img src={anypliLogo} alt="Anypli" style={{ height: '20px', opacity: 0.8 }} />
+          <img
+            src={anypliLogo}
+            alt="Anypli"
+            style={{
+              height: '20px',
+              opacity: 0.8,
+              display: 'block',
+              margin: '0 auto',
+            }}
+          />
         </div>
       </div>
     </div>

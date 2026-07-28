@@ -4,6 +4,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import GuestRoute from './components/GuestRoute';
 import Login from './pages/Login';
+import Profile from './pages/Profile';
 
 import Register from './pages/Register';
 import Availabilities from './pages/doctor/Availabilities';
@@ -75,7 +76,14 @@ function App() {
     </GuestRoute>
   }
 />
-
+<Route
+  path="/profile"
+  element={
+    <ProtectedRoute>
+      <Profile />
+    </ProtectedRoute>
+  }
+/>
 <Route
   path="/forgot-password"
   element={

@@ -160,8 +160,16 @@ export default function Home() {
 
       <footer className="home-footer">
         <p>© 2026 MedPlanner — Prenez soin de vous.</p>
-        <img src={anypliLogo} alt="Anypli" style={{ height: '18px', opacity: 0.7 }} />
-      </footer>
+ <img
+            src={anypliLogo}
+            alt="Anypli"
+            style={{
+              height: '20px',
+              opacity: 0.8,
+              display: 'block',
+              margin: '0 auto',
+            }}
+          />      </footer>
     </div>
   );
 }
