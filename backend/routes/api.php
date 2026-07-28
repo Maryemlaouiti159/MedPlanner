@@ -76,10 +76,10 @@ Route::middleware('role:doctor')->prefix('doctor')->group(function () {
 });
 // Dans le groupe auth:sanctum, en dehors de role:admin/doctor :
 Route::middleware('role:patient')->prefix('patient')->group(function () {
+
     Route::get('/dashboard', [\App\Http\Controllers\Api\Patient\DashboardController::class, 'index']);
 
     Route::get('/specialties', [SpecialtyController::class, 'index']);
-
 
     Route::get('/doctors', [PatientDoctorController::class, 'index']);
     Route::get('/doctors/{doctor}', [PatientDoctorController::class, 'show']);
@@ -87,7 +87,9 @@ Route::middleware('role:patient')->prefix('patient')->group(function () {
 
     Route::get('/appointments', [AppointmentController::class, 'index']);
     Route::post('/appointments', [AppointmentController::class, 'store']);
-    Route::delete('/appointments/{appointment}', [AppointmentController::class, 'destroy']);
+    Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
+    Route::delete('/appointments/{appointment}/cancel', [AppointmentController::class, 'destroy']);
+    Route::delete('/appointments/{appointment}', [AppointmentController::class, 'delete']);
 });
 Route::middleware('role:secretary')->prefix('secretary')->group(function () {
     Route::get('/dashboard', [SecretaryDashboardController::class, 'index']);

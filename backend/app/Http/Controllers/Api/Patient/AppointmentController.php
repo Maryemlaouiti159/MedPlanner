@@ -7,7 +7,7 @@ use App\Http\Requests\Patient\CreateAppointmentRequest;
 use App\Models\Appointment;
 use App\Repositories\Contracts\AppointmentRepositoryInterface;
 use Illuminate\Http\Request;
-
+use App\Http\Requests\Patient\UpdateAppointmentRequest;
 class AppointmentController extends Controller
 {
     public function __construct(
@@ -39,4 +39,62 @@ class AppointmentController extends Controller
 
         return response()->json(['message' => 'Rendez-vous annulé avec succès.']);
     }
+    public function update(
+    UpdateAppointmentRequest $request,
+    Appointment $appointment
+)
+{
+
+    if($appointment->patient_id !== $request->user()->id){
+
+        return response()->json([
+            'message'=>'Accès non autorisé.'
+        ],403);
+
+    }
+
+
+    try{
+
+        return response()->json(
+            $this->appointmentRepository
+            ->update(
+                $appointment,
+                $request->validated()
+            )
+        );
+
+
+    }catch(\Exception $e){
+
+        return response()->json([
+            'message'=>$e->getMessage()
+        ],422);
+
+    }
+
+}
+public function delete(
+    Request $request,
+    Appointment $appointment
+)
+{
+
+    if($appointment->patient_id !== $request->user()->id){
+
+        return response()->json([
+            'message'=>'Accès non autorisé.'
+        ],403);
+
+    }
+
+
+    $this->appointmentRepository->delete($appointment);
+
+
+    return response()->json([
+        'message'=>'Rendez-vous supprimé.'
+    ]);
+
+}
 }
