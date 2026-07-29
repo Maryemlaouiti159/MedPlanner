@@ -6,7 +6,8 @@ import { patientDoctorsApi } from '../../api/patientDoctors';
 import { fetchNotifications } from '../../api/notifications';
 import type { User, AppNotification, Doctor } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
-
+import { doctorPatientsApi } from '../../api/doctorPatients';
+import type { DoctorPatient } from '../../api/doctorDashboard';
 type TopbarProps = {
   toggleSidebar: () => void;
 };
@@ -29,10 +30,10 @@ export default function Topbar({ toggleSidebar }: TopbarProps) {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 const [showLogoutModal, setShowLogoutModal] = useState(false);
-
   const [search, setSearch] = useState('');
   const [results, setResults] = useState<User[]>([]);
   const [doctorResults, setDoctorResults] = useState<Doctor[]>([]);
+  const [patientResults, setPatientResults] = useState<DoctorPatient[]>([]);
   const [showResults, setShowResults] = useState(false);
 
   const [showNotifs, setShowNotifs] = useState(false);
@@ -49,11 +50,12 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
   const role = user?.role ?? 'patient';
 
  const runSearch = useCallback((query: string) => {
-  if (query.trim().length < 2) {
-    setResults([]);
-    setDoctorResults([]);
-    return;
-  }
+ if (query.trim().length < 2) {
+  setResults([]);
+  setDoctorResults([]);
+  setPatientResults([]);
+  return;
+}
 
   if (role === 'admin') {
     adminUsersApi.list({ search: query, page: 1 })
@@ -71,6 +73,21 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
       })
       .catch(() => setDoctorResults([]));
   }
+  else if (role === 'doctor') {
+  doctorPatientsApi.list()
+    .then((res) => {
+      const q = query.trim().toLowerCase();
+
+      const filtered = res.data.filter((p) =>
+        `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
+        (p.email ?? '').toLowerCase().includes(q) ||
+        (p.phone ?? '').toLowerCase().includes(q)
+      );
+
+      setPatientResults(filtered.slice(0, 6));
+    })
+    .catch(() => setPatientResults([]));
+}
 }, [role]);
 
   useEffect(() => {
@@ -121,7 +138,16 @@ const handleSelectDoctor = (d: Doctor) => {
   setSearch('');
   navigate(`/doctors/${d.id}`);
 };
- 
+ const handleSelectPatient = (patient: DoctorPatient) => {
+  setShowResults(false);
+  setSearch('');
+
+  navigate('/patients', {
+    state: {
+      selectedPatientId: patient.id,
+    },
+  });
+};
 
   if (!user) return null;
 const confirmLogout = async () => {
@@ -182,6 +208,38 @@ const confirmLogout = async () => {
             )}
           </div>
         )}
+{showResults && role === 'doctor' && search.trim().length >= 2 && (
+  <div className="search-dropdown">
+    {patientResults.length === 0 ? (
+      <div className="search-empty">
+        Aucun patient pour "{search}"
+      </div>
+    ) : (
+      patientResults.map((patient) => (
+        <div
+          key={patient.id}
+          className="search-result-item"
+          onClick={() => handleSelectPatient(patient)}
+        >
+          <div className="search-result-avatar">
+            {patient.first_name[0]}
+            {patient.last_name[0]}
+          </div>
+
+          <div className="search-result-info">
+            <p>
+              {patient.first_name} {patient.last_name}
+            </p>
+            <span>
+              {patient.phone || patient.email || 'Patient'}
+            </span>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+)}
+
       </div>
 
       <div className="app-topbar-actions">

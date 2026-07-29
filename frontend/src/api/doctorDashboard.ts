@@ -42,4 +42,8 @@ export const doctorDashboardApi = {
     const response = await api.get<DoctorPatient[]>('/doctor/patients');
     return response;
   },
+  deletePatient: (patientId: number) =>
+  api.delete(`/doctor/patients/${patientId}`),
+  getPatientDetail: (patientId: number) =>
+  api.get(`/doctor/patients/${patientId}`),
 };

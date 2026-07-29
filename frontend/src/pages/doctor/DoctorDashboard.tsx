@@ -4,14 +4,24 @@ import { useAuth } from '../../context/AuthContext';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import { doctorDashboardApi, type DoctorDashboardData } from '../../api/doctorDashboard';
 
-function formatDayLabel(): string {
+function formatFullDate(): string {
   const formatted = new Intl.DateTimeFormat('fr-FR', {
     weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
   }).format(new Date());
-  return formatted.toUpperCase();
+  return formatted.charAt(0).toUpperCase() + formatted.slice(1);
 }
 
 const initials = (first: string, last: string) => `${first[0]}${last[0]}`.toUpperCase();
+
+// Palette cyclique pour les avatars des patients (couleurs distinctes, comme sur la maquette)
+const AVATAR_COLORS = ['#0e9f8e', '#c026a3', '#6b5acd', '#e07a1f', '#1e293b', '#e0507a'];
+
+const STATUS_STYLES: Record<string, { bg: string; color: string; label: string }> = {
+  confirmed: { bg: 'rgba(14, 159, 142, 0.12)', color: '#0e9f8e', label: '✓ Confirmé' },
+  pending: { bg: 'rgba(245, 158, 11, 0.12)', color: '#f59e0b', label: '⏱ En attente' },
+  cancelled: { bg: 'rgba(214, 59, 59, 0.12)', color: '#d63b3b', label: '✕ Annulé' },
+  completed: { bg: 'rgba(107, 114, 128, 0.12)', color: '#6b7280', label: '✓ Terminé' },
+};
 
 export default function DoctorDashboard() {
   const { user } = useAuth();
@@ -68,686 +78,480 @@ export default function DoctorDashboard() {
     );
   }
 
+  const confirmedToday = data.today_appointments.filter((a) => a.status === 'confirmed').length;
   const weekTotal = data.week_counts.reduce((sum, day) => sum + day.count, 0);
+  const weekMax = Math.max(...data.week_counts.map((d) => d.count), 1);
 
   return (
     <DashboardLayout>
       <div style={{ padding: '24px 32px', maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'flex-start',
-          marginBottom: '32px'
-        }}>
-          <div>
-            <div style={{ 
-              color: 'var(--text-muted)', 
-              fontSize: '13px', 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.5px',
-              marginBottom: '8px'
-            }}>
-              {formatDayLabel()}
+
+        {/* ---------- Bannière médecin ---------- */}
+        <div
+          style={{
+            position: 'relative',
+            overflow: 'hidden',
+            borderRadius: '20px',
+            background: 'linear-gradient(135deg, #16213e 0%, #0e5257 100%)',
+            color: 'white',
+            padding: '32px 36px',
+            marginBottom: '24px',
+          }}
+        >
+          <div
+            style={{
+              position: 'absolute',
+              top: '-60px',
+              right: '-60px',
+              width: '220px',
+              height: '220px',
+              background: 'rgba(255,255,255,0.06)',
+              borderRadius: '50%',
+            }}
+          />
+         <div
+  style={{
+    position: 'relative',
+    zIndex: 1,
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: '30px',
+  }}
+>
+  <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)', marginBottom: '6px' }}>
+              {formatFullDate()}
             </div>
-            <h1 style={{ 
-              fontSize: '32px', 
-              fontWeight: 700, 
-              margin: '0 0 8px 0',
-              color: 'var(--text-h)'
-            }}>
-              Bonjour, Dr. {user?.last_name} 👋
+            <h1 style={{ fontSize: '28px', fontWeight: 700,color: 'rgba(255,255,255,0.7)', margin: '0 0 4px 0' }}>
+              Dr. {user?.first_name} {user?.last_name}
             </h1>
-            <p style={{ 
-              fontSize: '16px', 
-              color: 'var(--text-muted)',
-              margin: 0
-            }}>
-              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{data.today_appointments.length} consultations</span> programmées aujourd'hui · 
-              <span style={{ color: '#f59e0b', fontWeight: 600, marginLeft: '4px' }}>{data.pending_appointments.length} demandes</span> en attente
+            <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.75)', margin: '0 0 24px 0' }}>
+              {data.doctor.specialty?.name || 'Médecin'}
+              {data.doctor.city ? ` · ${data.doctor.city}` : ''}
             </p>
+
+            <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: '28px', fontWeight: 700 }}>{data.today_appointments.length}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>RDV aujourd'hui</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '28px', fontWeight: 700 }}>{confirmedToday}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>Confirmés</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '28px', fontWeight: 700 }}>{data.pending_appointments.length}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>En attente</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '28px', fontWeight: 700 }}>{data.stats.total_patients}</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)' }}>Patients total</div>
+                
+              </div>
+             
+            </div>
+          </div> {/* fin partie gauche */}
+
+<img
+  src="https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=260&h=160&fit=crop&auto=format"
+  alt="Medical"
+  style={{
+    width: '250px',
+    height: '170px',
+    objectFit: 'cover',
+    borderRadius: '18px',
+    flexShrink: 0,
+  }}
+/>
+
+</div> {/* fin flex */}
+</div> {/* fin bannière */}
+        {/* ---------- Cartes de statistiques ---------- */}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+            gap: '20px',
+            marginBottom: '24px',
+          }}
+        >
+          <StatCard
+            icon="🩺"
+            iconBg="rgba(37, 99, 235, 0.12)"
+            iconColor="#2563eb"
+            value={weekTotal}
+            label="Consultations cette semaine"
+          />
+         
+          <StatCard
+            icon="👥"
+            iconBg="rgba(14, 159, 142, 0.12)"
+            iconColor="#0e9f8e"
+            value={data.stats.total_patients}
+            label="Patients suivis"
+          />
+          <StatCard
+            icon="⏳"
+            iconBg="rgba(107, 90, 205, 0.12)"
+            iconColor="#6b5acd"
+            value={data.stats.pending_count}
+            label="Demandes à traiter"
+          />
+        </div>
+{/* ---------- Graphique + Planning ---------- */}
+<div
+  style={{
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '20px',
+    marginBottom: '24px',
+    alignItems: 'start',
+  }}
+>
+  {/* ===== Graphique ===== */}
+  <div
+    style={{
+      background: 'var(--bg-secondary)',
+      border: '1px solid var(--border)',
+      borderRadius: '16px',
+      padding: '24px',
+    }}
+  >
+    <h2
+      style={{
+        fontSize: '16px',
+        fontWeight: 600,
+        margin: '0 0 4px 0',
+        color: 'var(--text-h)',
+      }}
+    >
+      Patients / jour — semaine en cours
+    </h2>
+
+    <p
+      style={{
+        fontSize: '12.5px',
+        color: 'var(--text-muted)',
+        margin: '0 0 20px 0',
+      }}
+    >
+      {formatFullDate()}
+    </p>
+
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'flex-end',
+        gap: '10px',
+        height: '160px',
+      }}
+    >
+      {data.week_counts.map((day, i) => (
+        <div
+          key={i}
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            height: '100%',
+          }}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '32px',
+              height: `${(day.count / weekMax) * 100}%`,
+              minHeight: day.count > 0 ? '4px' : '0px',
+              background: '#0e9f8e',
+              borderRadius: '6px 6px 0 0',
+            }}
+          />
+
+          <div
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              marginTop: '8px',
+            }}
+          >
+            {day.day.charAt(0).toUpperCase() + day.day.slice(1, 3)}
           </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              onClick={() => navigate('/availabilities')}
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* ===== Planning ===== */}
+  <div>
+ <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--text-h)' }}>
+              Planning d'aujourd'hui
+            </h2>
+            <span
+              onClick={() => navigate('/appointments')}
+              style={{ fontSize: '14px', color: 'var(--accent)', fontWeight: 500, cursor: 'pointer' }}
+            >
+              Voir tout →
+            </span>
+          </div>
+
+          {data.today_appointments.length === 0 ? (
+            <div
               style={{
-                padding: '12px 24px',
-                border: '1px solid var(--border)',
-                borderRadius: '10px',
                 background: 'var(--bg-secondary)',
-                color: 'var(--text)',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
+                border: '1px solid var(--border)',
+                borderRadius: '16px',
+                padding: '40px',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
               }}
             >
-              🗓️ Gérer disponibilités
-            </button>
-            <button 
-              onClick={() => navigate('/notifications')}
-              style={{
-                padding: '12px 24px',
-                border: 'none',
-                borderRadius: '10px',
-                background: 'var(--accent)',
-                color: 'white',
-                fontWeight: 600,
-                fontSize: '14px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-            >
-              ✓ Voir les demandes ({data.pending_appointments.length})
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(4, 1fr)', 
-          gap: '20px', 
-          marginBottom: '32px'
-        }}>
-          <div style={{ 
-            background: 'var(--bg-secondary)', 
-            border: '1px solid var(--border)', 
-            borderRadius: '16px', 
-            padding: '24px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Patients aujourd'hui
-              </span>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                borderRadius: '10px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                background: 'rgba(107, 90, 205, 0.12)',
-                color: '#6b5acd'
-              }}>
-                👤
-              </div>
+              Aucun rendez-vous aujourd'hui.
             </div>
-            <div style={{ fontSize: '36px', fontWeight: 700, color: 'var(--text-h)', marginBottom: '8px' }}>
-              {data.stats.today_patients}
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              {data.stats.today_patients} confirmés
-            </div>
-          </div>
-
-          <div style={{ 
-            background: 'var(--bg-secondary)', 
-            border: '1px solid var(--border)', 
-            borderRadius: '16px', 
-            padding: '24px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                En attente
-              </span>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                borderRadius: '10px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                background: 'rgba(245, 158, 11, 0.12)',
-                color: '#f59e0b'
-              }}>
-                ⏳
-              </div>
-            </div>
-            <div style={{ fontSize: '36px', fontWeight: 700, color: 'var(--text-h)', marginBottom: '8px' }}>
-              {data.stats.pending_count}
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              À confirmer
-            </div>
-          </div>
-
-          <div style={{ 
-            background: 'var(--bg-secondary)', 
-            border: '1px solid var(--border)', 
-            borderRadius: '16px', 
-            padding: '24px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Patients suivis
-              </span>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                borderRadius: '10px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                background: 'rgba(14, 159, 142, 0.12)',
-                color: '#0e9f8e'
-              }}>
-                👥
-              </div>
-            </div>
-            <div style={{ fontSize: '36px', fontWeight: 700, color: 'var(--text-h)', marginBottom: '8px' }}>
-              {data.stats.total_patients}
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Dossiers actifs
-            </div>
-          </div>
-
-          <div style={{ 
-            background: 'var(--bg-secondary)', 
-            border: '1px solid var(--border)', 
-            borderRadius: '16px', 
-            padding: '24px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-              <span style={{ color: 'var(--text-muted)', fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Note moyenne
-              </span>
-              <div style={{ 
-                width: '40px', 
-                height: '40px', 
-                borderRadius: '10px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                background: 'rgba(214, 59, 59, 0.12)',
-                color: '#d63b3b'
-              }}>
-                ⭐
-              </div>
-            </div>
-            <div style={{ fontSize: '36px', fontWeight: 700, color: 'var(--text-h)', marginBottom: '8px' }}>
-              {data.stats.avg_rating}
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              312 avis patients
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-          {/* Left Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Today's Schedule */}
-            <div style={{ 
-              background: 'var(--bg-secondary)', 
-              border: '1px solid var(--border)', 
-              borderRadius: '16px', 
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                padding: '20px 24px', 
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0, color: 'var(--text-h)' }}>
-                  Programme du jour
-                </h2>
-                <span style={{ 
-                  fontSize: '14px', 
-                  color: 'var(--accent)', 
-                  fontWeight: 500,
-                  cursor: 'pointer'
-                }}>
-                  Agenda complet →
-                </span>
-              </div>
-              <div style={{ padding: '20px 24px' }}>
-                <div style={{ 
-                  fontSize: '13px', 
-                  color: 'var(--text-muted)', 
-                  marginBottom: '20px'
-                }}>
-                  {formatDayLabel()}
-                </div>
-                {data.today_appointments.length === 0 ? (
-                  <div style={{ 
-                    padding: '40px', 
-                    textAlign: 'center', 
-                    color: 'var(--text-muted)',
-                    fontSize: '14px'
-                  }}>
-                    Aucun rendez-vous aujourd'hui.
-                  </div>
-                ) : (
-                  data.today_appointments.map((appt, index) => (
-                    <div 
-                      key={appt.id} 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'flex-start',
-                        padding: index > 0 ? '20px 0' : '0 0 20px 0',
-                        borderBottom: index < data.today_appointments.length - 1 ? '1px solid var(--border)' : 'none'
-                      }}
-                    >
-                      <div style={{ 
-                        minWidth: '70px',
-                        fontSize: '15px',
-                        fontWeight: 700,
-                        color: 'var(--text-h)',
-                        paddingTop: '4px'
-                      }}>
-                        {appt.availability.start_time.slice(0, 5)}
-                      </div>
-                      <div style={{ 
-                        width: '2px', 
-                        height: '100%', 
-                        background: 'var(--accent)',
-                        marginRight: '20px',
-                        borderRadius: '2px'
-                      }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                          <div style={{ 
-                            width: '48px', 
-                            height: '48px', 
-                            borderRadius: '12px', 
-                            background: 'linear-gradient(135deg, var(--accent), var(--lilac))',
-                            color: 'white',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 700,
-                            fontSize: '16px'
-                          }}>
-                            {initials(appt.patient.first_name, appt.patient.last_name)}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ 
-                              fontSize: '16px', 
-                              fontWeight: 600, 
-                              color: 'var(--text-h)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '12px'
-                            }}>
-                              {appt.patient.first_name} {appt.patient.last_name}
-                              {appt.status === 'pending' && (
-                                <span style={{ 
-                                  background: 'rgba(107, 90, 205, 0.12)', 
-                                  color: '#6b5acd', 
-                                  fontSize: '11px', 
-                                  padding: '3px 8px', 
-                                  borderRadius: '6px', 
-                                  fontWeight: 600,
-                                  textTransform: 'uppercase'
-                                }}>
-                                  Nouveau
-                                </span>
-                              )}
-                            </div>
-                            <div style={{ 
-                              fontSize: '13.5px', 
-                              color: 'var(--text-muted)',
-                              marginTop: '4px'
-                            }}>
-                              {appt.patient.age || 34} ans · {appt.reason || 'Consultation'}
-                            </div>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ 
-                              background: appt.consultation_type === 'in_person' ? 'rgba(14, 159, 142, 0.12)' : 'rgba(107, 90, 205, 0.12)',
-                              color: appt.consultation_type === 'in_person' ? '#0e9f8e' : '#6b5acd',
-                              padding: '5px 10px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: 500,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px'
-                            }}>
-                              {appt.consultation_type === 'in_person' ? '🏥 Présentiel' : '💻 Télé'}
-                            </span>
-                            <span style={{ 
-                              background: appt.status === 'confirmed' ? 'rgba(14, 159, 142, 0.12)' : appt.status === 'pending' ? 'rgba(245, 158, 11, 0.12)' : 'rgba(214, 59, 59, 0.12)',
-                              color: appt.status === 'confirmed' ? '#0e9f8e' : appt.status === 'pending' ? '#f59e0b' : '#d63b3b',
-                              padding: '5px 10px',
-                              borderRadius: '6px',
-                              fontSize: '12px',
-                              fontWeight: 600
-                            }}>
-                              {appt.status === 'confirmed' ? 'Confirmé' : appt.status === 'pending' ? 'En attente' : 'Annulé'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Pending Requests */}
-            <div style={{ 
-              background: 'var(--bg-secondary)', 
-              border: '1px solid var(--border)', 
-              borderRadius: '16px', 
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                padding: '20px 24px', 
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0, color: 'var(--text-h)' }}>
-                    Demandes en attente
-                  </h2>
-                  {data.pending_appointments.length > 0 && (
-                    <span style={{ 
-                      background: 'rgba(245, 158, 11, 0.15)',
-                      color: '#f59e0b',
-                      padding: '4px 10px',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: 600
-                    }}>
-                      {data.pending_appointments.length} à traiter
-                    </span>
-                  )}
-                </div>
-                <span style={{ 
-                  fontSize: '14px', 
-                  color: 'var(--accent)', 
-                  fontWeight: 500,
-                  cursor: 'pointer'
-                }}>
-                  Tout voir →
-                </span>
-              </div>
-              <div style={{ padding: '20px 24px' }}>
-                {data.pending_appointments.length === 0 ? (
-                  <div style={{ 
-                    padding: '40px', 
-                    textAlign: 'center', 
-                    color: 'var(--text-muted)',
-                    fontSize: '14px'
-                  }}>
-                    Aucune demande en attente.
-                  </div>
-                ) : (
-                  data.pending_appointments.map((appt) => (
-                    <div 
-                      key={appt.id} 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center',
-                        padding: '16px 0',
-                        borderBottom: '1px solid var(--border)'
-                      }}
-                    >
-                      <div style={{ 
-                        width: '48px', 
-                        height: '48px', 
-                        borderRadius: '12px', 
-                        background: 'var(--border)',
-                        color: 'var(--text-h)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: '16px',
-                        marginRight: '16px'
-                      }}>
+          ) : (
+           <div
+  style={{
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  }}
+>
+              {data.today_appointments.map((appt, i) => {
+                const statusStyle = STATUS_STYLES[appt.status] ?? STATUS_STYLES.pending;
+                return (
+                  <div
+                    key={appt.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '14px',
+                      background: 'var(--bg-secondary)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '14px',
+                      padding: '16px 18px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}>
+                      <div
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: '10px',
+                          background: AVATAR_COLORS[i % AVATAR_COLORS.length],
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 700,
+                          fontSize: '14px',
+                          flexShrink: 0,
+                        }}
+                      >
                         {initials(appt.patient.first_name, appt.patient.last_name)}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ 
-                          fontSize: '15px', 
-                          fontWeight: 600, 
-                          color: 'var(--text-h)',
-                          marginBottom: '4px'
-                        }}>
-                          {appt.patient.first_name} {appt.patient.last_name}, {appt.patient.age || 45} ans
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-h)' }}>
+                          {appt.patient.first_name} {appt.patient.last_name}
                         </div>
-                        <div style={{ 
-                          fontSize: '13.5px', 
-                          color: 'var(--text-muted)'
-                        }}>
-                          {appt.reason || 'Consultation'} · {new Date(appt.availability.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} à {appt.availability.start_time.slice(0, 5)}
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {appt.reason || 'Consultation'}
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          🕒 {appt.availability.start_time.slice(0, 5)}
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '10px' }}>
-                        <button 
-                          onClick={() => handleAccept(appt.id)}
-                          style={{
-                            padding: '8px 18px',
-                            border: 'none',
-                            borderRadius: '8px',
-                            background: 'rgba(14, 159, 142, 0.12)',
-                            color: '#0e9f8e',
-                            fontWeight: 600,
-                            fontSize: '13.5px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          ✓ Accepter
-                        </button>
-                        <button 
-                          onClick={() => handleReject(appt.id)}
-                          style={{
-                            padding: '8px 18px',
-                            border: 'none',
-                            borderRadius: '8px',
-                            background: 'rgba(214, 59, 59, 0.12)',
-                            color: '#d63b3b',
-                            fontWeight: 600,
-                            fontSize: '13.5px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          ✗ Refuser
-                        </button>
-                      </div>
                     </div>
-                  ))
-                )}
-              </div>
-            </div>
-          </div>
 
-          {/* Right Column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* This Week Chart */}
-            <div style={{ 
-              background: 'var(--bg-secondary)', 
-              border: '1px solid var(--border)', 
-              borderRadius: '16px', 
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                padding: '20px 24px', 
-                borderBottom: '1px solid var(--border)'
-              }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0, color: 'var(--text-h)' }}>
-                  Cette semaine
-                </h2>
-              </div>
-              <div style={{ padding: '24px' }}>
-                {data.week_counts.map((day, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-                    <div style={{ width: '60px', fontSize: '14px', fontWeight: 600, color: i === 0 ? 'var(--accent)' : 'var(--text)' }}>
-                      {day.day.charAt(0).toUpperCase() + day.day.slice(1, 3)}
-                    </div>
-                    <div style={{ 
-                      flex: 1, 
-                      height: '8px', 
-                      background: 'var(--border)', 
-                      borderRadius: '4px', 
-                      overflow: 'hidden' 
-                    }}>
-                      <div style={{ 
-                        height: '100%', 
-                        width: `${(day.count / (data.stats.today_patients || 1)) * 100}%`,
-                        maxWidth: '100%',
-                        background: i === 0 ? 'var(--accent)' : 'var(--text-muted)',
-                        borderRadius: '4px'
-                      }} />
-                    </div>
-                    <div style={{ width: '24px', textAlign: 'right', fontSize: '14px', fontWeight: 600, color: 'var(--text-h)' }}>
-                      {day.count}
-                    </div>
-                  </div>
-                ))}
-                <div style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr', 
-                  gap: '16px', 
-                  marginTop: '24px',
-                  paddingTop: '20px',
-                  borderTop: '1px solid var(--border)'
-                }}>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-h)' }}>{weekTotal}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Consultations</div>
-                  </div>
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-h)' }}>1 600€</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Honoraires</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Availability */}
-            <div style={{ 
-              background: 'var(--bg-secondary)', 
-              border: '1px solid var(--border)', 
-              borderRadius: '16px', 
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                padding: '20px 24px', 
-                borderBottom: '1px solid var(--border)',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center'
-              }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 600, margin: 0, color: 'var(--text-h)' }}>
-                  Disponibilités
-                </h2>
-                <span 
-                  onClick={() => navigate('/availabilities')}
-                  style={{ 
-                    fontSize: '14px', 
-                    color: 'var(--accent)', 
-                    fontWeight: 500,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Modifier
-                </span>
-              </div>
-              <div style={{ padding: '24px' }}>
-                {['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'].map((day, i) => (
-                  <div key={i} style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center', 
-                    padding: '10px 0',
-                    fontSize: '14px',
-                    color: i === 4 ? 'var(--text-muted)' : 'var(--text-h)',
-                    fontWeight: 500
-                  }}>
-                    <span>{day}</span>
-                    <span style={{ color: '#0e9f8e', fontWeight: 600 }}>
-                      {i === 4 ? 'Fermé' : '08h30 - 18h00'}
+                    <span
+                      style={{
+                        background: statusStyle.bg,
+                        color: statusStyle.color,
+                        padding: '5px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {statusStyle.label}
                     </span>
                   </div>
-                ))}
-              </div>
+                );
+              })}
             </div>
+          )}
+        </div>  </div>
+</div>
+        
+          
 
-            {/* Doctor Profile Card */}
-            <div style={{ 
-              background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', 
-              borderRadius: '16px', 
-              padding: '28px 24px',
-              color: 'white',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              <div style={{ 
-                position: 'absolute', 
-                top: '-40px', 
-                right: '-40px', 
-                width: '140px', 
-                height: '140px', 
-                background: 'rgba(255, 255, 255, 0.07)', 
-                borderRadius: '50%' 
-              }} />
-              <div style={{ 
-                width: '80px', 
-                height: '80px', 
-                borderRadius: '50%', 
-                background: 'var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px',
-                fontSize: '28px'
-              }}>
-                👩‍⚕️
-              </div>
-              <h3 style={{ fontSize: '20px', fontWeight: 700, margin: '0 0 8px 0' }}>
-                Dr. {user?.first_name} {user?.last_name}
-              </h3>
-              <p style={{ 
-                fontSize: '14px', 
-                margin: '0 0 20px 0',
-                color: 'rgba(255, 255, 255, 0.8)'
-              }}>
-                {data.doctor.specialty?.name || 'Médecin généraliste'} · {data.doctor.city || 'Paris'}
-              </p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>
-                    Exp.
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 600 }}>18 ans</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>
-                    Patients
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 600 }}>312+</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>
-                    Note
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 600 }}>4.9 ⭐</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.5px', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>
-                    Langues
-                  </div>
-                  <div style={{ fontSize: '16px', fontWeight: 600 }}>FR · EN</div>
-                </div>
-              </div>
-            </div>
+        
+       
+
+        {/* ---------- Demandes en attente (actions Accepter/Refuser) ---------- */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, margin: 0, color: 'var(--text-h)' }}>
+              Demandes en attente
+            </h2>
+            {data.pending_appointments.length > 0 && (
+              <span
+                style={{
+                  background: 'rgba(245, 158, 11, 0.15)',
+                  color: '#f59e0b',
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
+              >
+                {data.pending_appointments.length} à traiter
+              </span>
+            )}
           </div>
+
+          {data.pending_appointments.length === 0 ? (
+            <div
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border)',
+                borderRadius: '16px',
+                padding: '40px',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+              }}
+            >
+              Aucune demande en attente.
+            </div>
+          ) : (
+            <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
+              {data.pending_appointments.map((appt, i) => (
+                <div
+                  key={appt.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '16px 24px',
+                    borderBottom: i < data.pending_appointments.length - 1 ? '1px solid var(--border)' : 'none',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: '12px',
+                      background: AVATAR_COLORS[i % AVATAR_COLORS.length],
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: '15px',
+                      marginRight: '16px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {initials(appt.patient.first_name, appt.patient.last_name)}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-h)', marginBottom: '4px' }}>
+                      {appt.patient.first_name} {appt.patient.last_name}
+                    </div>
+                    <div style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>
+                      {appt.reason || 'Consultation'} ·{' '}
+                      {new Date(appt.availability.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })} à{' '}
+                      {appt.availability.start_time.slice(0, 5)}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button
+                      onClick={() => handleAccept(appt.id)}
+                      style={{
+                        padding: '8px 18px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        background: 'rgba(14, 159, 142, 0.12)',
+                        color: '#0e9f8e',
+                        fontWeight: 600,
+                        fontSize: '13.5px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✓ Accepter
+                    </button>
+                    <button
+                      onClick={() => handleReject(appt.id)}
+                      style={{
+                        padding: '8px 18px',
+                        border: 'none',
+                        borderRadius: '8px',
+                        background: 'rgba(214, 59, 59, 0.12)',
+                        color: '#d63b3b',
+                        fontWeight: 600,
+                        fontSize: '13.5px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      ✗ Refuser
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
+  );
+}
+
+function StatCard({
+  icon,
+  iconBg,
+  iconColor,
+  value,
+  label,
+}: {
+  icon: string;
+  iconBg: string;
+  iconColor: string;
+  value: string | number;
+  label: string;
+}) {
+  return (
+    <div
+      style={{
+        background: 'var(--bg-secondary)',
+        border: '1px solid var(--border)',
+        borderRadius: '16px',
+        padding: '22px',
+      }}
+    >
+      <div
+        style={{
+          width: '42px',
+          height: '42px',
+          borderRadius: '10px',
+          background: iconBg,
+          color: iconColor,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '18px',
+          marginBottom: '16px',
+        }}
+      >
+        {icon}
+      </div>
+      <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--text-h)', marginBottom: '4px' }}>
+        {value}
+      </div>
+      <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{label}</div>
+    </div>
   );
 }

@@ -10,6 +10,7 @@ import Register from './pages/Register';
 import Availabilities from './pages/doctor/Availabilities';
 import ForgotPassword from './pages/ForgotPassword';
 import Dashboard from './pages/Dashboard';
+import DoctorPlanning from './pages/doctor/Doctorplanning';
 import PatientDoctorsList from './pages/patient/DoctorsList';
 import DoctorDetail from './pages/patient/DoctorDetail';
 import MyAppointments from './pages/patient/MyAppointments';
@@ -120,6 +121,15 @@ function App() {
     </ProtectedRoute>
   }
 />
+<Route
+  path="/planning"
+  element={
+    <ProtectedRoute allowedRoles={['doctor']}>
+      <DoctorPlanning />
+    </ProtectedRoute>
+  }
+/>
+
 <Route
   path="/patients"
   element={

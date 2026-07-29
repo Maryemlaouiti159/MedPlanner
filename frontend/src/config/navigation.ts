@@ -24,7 +24,7 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   ],
   doctor: [
     { label: 'Tableau de bord', path: '/dashboard', icon: '📊' },
-    { label: 'Planning', path: '/schedule', icon: '📅' },
+    { label: 'Planning', path: '/planning', icon: '📅' },
     { label: 'Patients', path: '/patients', icon: '👥' },
     { label: 'Disponibilités', path: '/availabilities', icon: '🕒' },
     { label: 'Paramètres', path: '/settings', icon: '⚙️' },

@@ -176,8 +176,10 @@ export interface Availability {
   start_time: string;
   end_time: string;
   is_booked: boolean;
-  created_at: string;
-  updated_at: string;
+  is_blocked: boolean;
+  status: 'free' | 'booked' | 'blocked';
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CreateAvailabilityData {
@@ -213,14 +215,6 @@ export interface UpdateDoctorData {
   city?: string;
   consultation_duration?: number;
   consultation_price?: number;
-}
-export interface Availability {
-  id: number;
-  doctor_id: number;
-  date: string;
-  start_time: string;
-  end_time: string;
-  is_booked: boolean;
 }
 
 

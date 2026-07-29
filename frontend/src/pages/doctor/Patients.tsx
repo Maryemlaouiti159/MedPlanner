@@ -17,13 +17,38 @@ export default function DoctorPatients() {
   const [patients, setPatients] = useState<DoctorPatient[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [patientToDelete, setPatientToDelete] = useState<DoctorPatient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<DoctorPatient | null>(null);
+
+  const confirmDeletePatient = async () => {
+    if (!patientToDelete) return;
+    const patientId = patientToDelete.id;
+
+    setDeletingId(patientId);
+    try {
+      await doctorDashboardApi.deletePatient(patientId);
+      setPatients(prev => prev.filter(p => p.id !== patientId));
+      if (selectedPatient?.id === patientId) setSelectedPatient(null);
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de la suppression du patient.");
+    } finally {
+      setDeletingId(null);
+      setPatientToDelete(null);
+    }
+  };
 
   const loadPatients = async () => {
+    setLoading(true);
+    setError('');
     try {
       const res = await doctorDashboardApi.getPatients();
       setPatients(res.data);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
+      setError('Impossible de charger la liste des patients.');
     } finally {
       setLoading(false);
     }
@@ -33,44 +58,185 @@ export default function DoctorPatients() {
     loadPatients();
   }, []);
 
-  const filteredPatients = patients.filter(p => 
+  const filteredPatients = patients.filter(p =>
     `${p.first_name} ${p.last_name}`.toLowerCase().includes(search.toLowerCase())
   );
 
+  // ---------- Vue dossier patient (remplace toute la page) ----------
+  if (selectedPatient) {
+    const patient = selectedPatient;
+    return (
+      <DashboardLayout>
+        <div style={{ padding: '24px 32px', maxWidth: '1000px', margin: '0 auto' }}>
+          <button
+            onClick={() => setSelectedPatient(null)}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: 'var(--text-muted)',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              marginBottom: '16px',
+              padding: 0,
+            }}
+          >
+            ← Retour aux patients
+          </button>
+
+          <div style={{
+            background: 'var(--bg-secondary)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px',
+            overflow: 'hidden',
+          }}>
+            {/* Bannière dégradée */}
+            <div style={{
+              background: 'linear-gradient(135deg, #0f172a, #0e7490)',
+              height: '110px',
+            }} />
+
+            {/* Avatar + nom (chevauche la bannière) */}
+            <div style={{ padding: '0 28px', marginTop: '-46px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-end', gap: '16px', flexWrap: 'wrap' }}>
+                <div style={{
+                  width: '84px',
+                  height: '84px',
+                  borderRadius: '18px',
+                  background: 'linear-gradient(135deg, #0e9f8e, #0b7a6e)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: '26px',
+                  border: '4px solid var(--bg-secondary)',
+                  flexShrink: 0,
+                }}>
+                  {initials(patient.first_name, patient.last_name)}
+                </div>
+
+                <div style={{ paddingBottom: '6px' }}>
+                  <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-h)' }}>
+                    {patient.first_name} {patient.last_name}
+                  </div>
+                  <div style={{ fontSize: '13.5px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {patient.total_consultations} consultation{patient.total_consultations > 1 ? 's' : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Cartes info */}
+            <div style={{ padding: '24px 28px 8px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '12px',
+                marginBottom: '12px',
+              }}>
+                <InfoCard label="Email" value={patient.email || '-'} />
+                <InfoCard label="Téléphone" value={patient.phone || '-'} />
+                <InfoCard label="Consultations" value={String(patient.total_consultations)} />
+              </div>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '12px',
+                marginBottom: '24px',
+              }}>
+                <InfoCard label="Dernière visite" value={formatDate(patient.last_visit)} />
+                <InfoCard label="Prochaine visite" value={formatDate(patient.next_visit)} />
+              </div>
+
+              {/* Antécédents */}
+              <div style={{ marginBottom: '28px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px', fontWeight: 600 }}>
+                  Antécédents
+                </div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {patient.conditions.length > 0 ? patient.conditions.map((c, idx) => (
+                    <span
+                      key={idx}
+                      style={{
+                        background: 'rgba(107, 90, 205, 0.12)',
+                        color: '#6b5acd',
+                        padding: '4px 10px',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: 500
+                      }}
+                    >
+                      {c}
+                    </span>
+                  )) : (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Aucun antécédent renseigné</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Action supprimer */}
+              <div style={{ paddingBottom: '24px' }}>
+                <button
+                  onClick={() => setPatientToDelete(patient)}
+                  disabled={deletingId === patient.id}
+                  style={{
+                    padding: '8px 16px',
+                    border: '1px solid #d63b3b',
+                    borderRadius: '8px',
+                    background: 'transparent',
+                    color: '#d63b3b',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: deletingId === patient.id ? 'not-allowed' : 'pointer',
+                    opacity: deletingId === patient.id ? 0.6 : 1,
+                  }}
+                >
+                  {deletingId === patient.id ? 'Suppression...' : '🗑 Retirer ce patient'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {patientToDelete && (
+          <DeleteModal
+            patientToDelete={patientToDelete}
+            deletingId={deletingId}
+            onCancel={() => setPatientToDelete(null)}
+            onConfirm={confirmDeletePatient}
+          />
+        )}
+      </DashboardLayout>
+    );
+  }
+
+  // ---------- Vue liste des patients ----------
   return (
     <DashboardLayout>
       <div style={{ padding: '24px 32px', maxWidth: '1400px', margin: '0 auto' }}>
         <div style={{ marginBottom: '32px' }}>
-          <div style={{ 
-            color: 'var(--text-muted)', 
-            fontSize: '13px', 
-            textTransform: 'uppercase', 
+          <div style={{
+            color: 'var(--text-muted)',
+            fontSize: '13px',
+            textTransform: 'uppercase',
             letterSpacing: '0.5px',
             marginBottom: '8px'
           }}>
             Suivi
           </div>
-          <h1 style={{ 
-            fontSize: '36px', 
-            fontWeight: 700, 
-            margin: '0 0 8px 0',
-            color: 'var(--text-h)'
-          }}>
+          <h1 style={{ fontSize: '36px', fontWeight: 700, margin: '0 0 8px 0', color: 'var(--text-h)' }}>
             Mes patients
           </h1>
-          <p style={{ 
-            fontSize: '16px', 
-            color: 'var(--text-muted)',
-            margin: 0
-          }}>
-            {patients.length} patients suivis
+          <p style={{ fontSize: '16px', color: 'var(--text-muted)', margin: 0 }}>
+            {patients.length} patient{patients.length > 1 ? 's' : ''} suivi{patients.length > 1 ? 's' : ''}
           </p>
         </div>
 
-        <div style={{ 
-          background: 'var(--bg-secondary)', 
-          border: '1px solid var(--border)', 
-          borderRadius: '20px', 
+        <div style={{
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border)',
+          borderRadius: '20px',
           overflow: 'hidden'
         }}>
           <div style={{ padding: '24px' }}>
@@ -84,7 +250,7 @@ export default function DoctorPatients() {
               padding: '14px 18px'
             }}>
               <span style={{ fontSize: '20px' }}>🔍</span>
-              <input 
+              <input
                 type="text"
                 placeholder="Rechercher un patient..."
                 style={{
@@ -101,9 +267,15 @@ export default function DoctorPatients() {
             </div>
           </div>
 
+          {error && (
+            <div className="alert alert-error" style={{ margin: '0 24px 16px' }}>
+              {error}
+            </div>
+          )}
+
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '2fr 0.8fr 1fr 1fr 1.5fr 1fr',
+            gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr 1fr',
             padding: '16px 24px',
             background: 'rgba(107, 90, 205, 0.05)',
             borderTop: '1px solid var(--border)',
@@ -115,7 +287,7 @@ export default function DoctorPatients() {
             letterSpacing: '0.3px'
           }}>
             <div>Patient</div>
-            <div>Âge</div>
+            <div>Téléphone</div>
             <div>Dernière visite</div>
             <div>Prochaine visite</div>
             <div>Antécédents</div>
@@ -128,15 +300,15 @@ export default function DoctorPatients() {
             </div>
           ) : filteredPatients.length === 0 ? (
             <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
-              Aucun patient trouvé
+              {search ? 'Aucun patient ne correspond à cette recherche.' : 'Aucun patient trouvé.'}
             </div>
           ) : (
             filteredPatients.map(patient => (
-              <div 
-                key={patient.id} 
+              <div
+                key={patient.id}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '2fr 0.8fr 1fr 1fr 1.5fr 1fr',
+                  gridTemplateColumns: '2fr 1fr 1fr 1fr 1.5fr 1fr',
                   padding: '20px 24px',
                   borderBottom: '1px solid var(--border)',
                   alignItems: 'center'
@@ -168,15 +340,15 @@ export default function DoctorPatients() {
                 </div>
 
                 <div style={{ color: 'var(--text)', fontSize: '14px' }}>
-                  34 ans {/* TODO: Add real age from backend */}
+                  {patient.phone || '-'}
                 </div>
 
                 <div style={{ color: 'var(--text)', fontSize: '14px' }}>
                   {formatDate(patient.last_visit)}
                 </div>
 
-                <div style={{ 
-                  color: '#0e9f8e', 
+                <div style={{
+                  color: '#0e9f8e',
                   fontSize: '14px',
                   fontWeight: 600,
                   background: 'rgba(14, 159, 142, 0.12)',
@@ -189,8 +361,8 @@ export default function DoctorPatients() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {patient.conditions.map((condition, idx) => (
-                    <span 
+                  {patient.conditions.slice(0, 2).map((condition, idx) => (
+                    <span
                       key={idx}
                       style={{
                         background: 'rgba(107, 90, 205, 0.12)',
@@ -209,19 +381,28 @@ export default function DoctorPatients() {
                       Aucun
                     </span>
                   )}
+                  {patient.conditions.length > 2 && (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+                      +{patient.conditions.length - 2}
+                    </span>
+                  )}
                 </div>
 
                 <div style={{ justifySelf: 'end' }}>
-                  <button style={{
-                    padding: '8px 20px',
-                    border: '1px solid #6b5acd',
-                    borderRadius: '10px',
-                    background: 'transparent',
-                    color: '#6b5acd',
-                    fontWeight: 600,
-                    fontSize: '14px',
-                    cursor: 'pointer'
-                  }}>
+                  <button
+                    onClick={() => setSelectedPatient(patient)}
+                    style={{
+                      padding: '8px 20px',
+                      border: '1px solid #6b5acd',
+                      borderRadius: '10px',
+                      background: 'transparent',
+                      color: '#6b5acd',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
                     Dossier
                   </button>
                 </div>
@@ -230,6 +411,129 @@ export default function DoctorPatients() {
           )}
         </div>
       </div>
+
+      {patientToDelete && (
+        <DeleteModal
+          patientToDelete={patientToDelete}
+          deletingId={deletingId}
+          onCancel={() => setPatientToDelete(null)}
+          onConfirm={confirmDeletePatient}
+        />
+      )}
     </DashboardLayout>
+  );
+}
+
+function InfoCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{
+      background: 'var(--bg)',
+      border: '1px solid var(--border)',
+      borderRadius: '12px',
+      padding: '14px 16px',
+    }}>
+      <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px', fontWeight: 600 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: '14.5px', fontWeight: 600, color: 'var(--text-h)' }}>
+        {value}
+      </div>
+    </div>
+  );
+}
+
+function DeleteModal({
+  patientToDelete,
+  deletingId,
+  onCancel,
+  onConfirm,
+}: {
+  patientToDelete: DoctorPatient;
+  deletingId: number | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      onClick={() => !deletingId && onCancel()}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(20, 15, 35, 0.55)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#ffffff',
+          borderRadius: '20px',
+          padding: '32px',
+          maxWidth: '420px',
+          width: '90%',
+          boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+        }}
+      >
+        <div style={{
+          width: '52px',
+          height: '52px',
+          borderRadius: '50%',
+          background: 'rgba(214, 59, 59, 0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '24px',
+          marginBottom: '18px',
+        }}>
+          🗑
+        </div>
+
+        <h3 style={{ fontSize: '19px', fontWeight: 700, color: 'var(--text-h)', margin: '0 0 10px 0' }}>
+          Retirer ce patient ?
+        </h3>
+        <p style={{ fontSize: '14.5px', color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 26px 0' }}>
+          Tous vos rendez-vous avec <strong style={{ color: 'var(--text)' }}>{patientToDelete.first_name} {patientToDelete.last_name}</strong> seront supprimés définitivement. Cette action est irréversible.
+        </p>
+
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onCancel}
+            disabled={deletingId === patientToDelete.id}
+            style={{
+              padding: '10px 20px',
+              border: '1px solid var(--border)',
+              borderRadius: '10px',
+              background: 'transparent',
+              color: 'var(--text)',
+              fontWeight: 600,
+              fontSize: '14px',
+              cursor: 'pointer',
+            }}
+          >
+            Annuler
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={deletingId === patientToDelete.id}
+            style={{
+              padding: '10px 20px',
+              border: 'none',
+              borderRadius: '10px',
+              background: '#d63b3b',
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '14px',
+              cursor: deletingId === patientToDelete.id ? 'not-allowed' : 'pointer',
+              opacity: deletingId === patientToDelete.id ? 0.7 : 1,
+            }}
+          >
+            {deletingId === patientToDelete.id ? 'Suppression...' : 'Oui, retirer'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
