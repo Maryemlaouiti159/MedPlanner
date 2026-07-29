@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Secretary\DashboardController as SecretaryDashboard
 use App\Http\Controllers\Api\Secretary\AppointmentController as SecretaryAppointmentController;
 use App\Http\Controllers\Api\Secretary\PatientController as SecretaryPatientController;
 use App\Http\Controllers\Api\Secretary\AvailabilityController as SecretaryAvailabilityController;
+use App\Http\Controllers\Api\Doctor\DoctorPlanningController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -73,6 +74,10 @@ Route::middleware('role:doctor')->prefix('doctor')->group(function () {
     Route::get('/availabilities', [AvailabilityController::class, 'index']);
     Route::post('/availabilities', [AvailabilityController::class, 'store']);
     Route::delete('/availabilities/{availability}', [AvailabilityController::class, 'destroy']);
+   Route::get('/planning', [DoctorPlanningController::class, 'index']);
+    Route::patch('/planning/availability/{availability}/toggle-block', [DoctorPlanningController::class, 'toggleBlock']);
+Route::delete('patients/{patient}', [\App\Http\Controllers\Api\Doctor\PatientController::class, 'destroy']);
+Route::get('patients/{patient}', [\App\Http\Controllers\Api\Doctor\PatientController::class, 'show']);
 });
 // Dans le groupe auth:sanctum, en dehors de role:admin/doctor :
 Route::middleware('role:patient')->prefix('patient')->group(function () {
