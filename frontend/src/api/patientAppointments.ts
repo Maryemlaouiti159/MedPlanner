@@ -28,4 +28,7 @@ export const patientAppointmentsApi = {
   // récupérer les disponibilités d'un médecin
   availabilities: (doctorId: number) =>
     api.get(`/patient/doctors/${doctorId}/availabilities`),
+
+  videoRoom: (id: number) =>
+    api.get(`/patient/appointments/${id}/video-room`),
 };

@@ -72,8 +72,8 @@ class DashboardController extends Controller
         // 2. Monthly Appointments Line Chart (Last 7 months)
       // 2. Monthly Appointments Line Chart (Last 7 months) — séparé par statut
 $monthlyAppointments = [];
-for ($i = 6; $i >= 0; $i--) {
-    $date = now()->subMonths($i);
+for ($i = -6; $i <= 5; $i++) {
+    $date = now()->addMonths($i);
 
     $confirmed = Appointment::where('status', 'confirmed')
         ->whereHas('availability', function ($q) use ($date) {

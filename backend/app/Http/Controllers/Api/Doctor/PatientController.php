@@ -45,7 +45,11 @@ $nextVisit = $appointments
                     'total_consultations' => $appointments->count(),
                     'last_visit' => $lastVisit?->date,
                     'next_visit' => $nextVisit?->date,
-                    'conditions' => ['Hypertension légère'] // Temporaire — à connecter plus tard
+                    'conditions' => $appointments
+    ->pluck('reason')
+    ->filter()
+    ->unique()
+    ->values(),
                 ];
             })
             ->values();

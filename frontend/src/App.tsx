@@ -14,6 +14,7 @@ import DoctorPlanning from './pages/doctor/Doctorplanning';
 import PatientDoctorsList from './pages/patient/DoctorsList';
 import DoctorDetail from './pages/patient/DoctorDetail';
 import MyAppointments from './pages/patient/MyAppointments';
+import VideoConsultation from './pages/patient/VideoConsultation';
 import UsersList from './pages/admin/UsersList';
 import DoctorsList from './pages/admin/DoctorsList';
 import SpecialtiesList from './pages/admin/SpecialtiesList';
@@ -24,6 +25,7 @@ import UserProfile from './pages/admin/UserProfile';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import DoctorPatients from './pages/doctor/Patients';
+import SecretaryPatients from './pages/secretary/SecretaryPatients';
 import AdminAppointmentsList from './pages/admin/AdminAppointmentsList';
 import SecretaryDashboard from './pages/secretary/SecretaryDashboard';
 import SecretaryAppointments 
@@ -167,6 +169,10 @@ function App() {
   element={<ProtectedRoute allowedRoles={['patient']}><MyAppointments /></ProtectedRoute>}
 />
 <Route
+  path="/appointments/:id/video-consultation"
+  element={<ProtectedRoute allowedRoles={['patient']}><VideoConsultation /></ProtectedRoute>}
+/>
+<Route
   path="/settings"
   element={<ProtectedRoute><Settings /></ProtectedRoute>}
 />
@@ -178,6 +184,14 @@ function App() {
     <SecretaryAppointments/>
   </ProtectedRoute>
  }
+/>
+<Route
+  path="/secretary/patients"
+  element={
+    <ProtectedRoute allowedRoles={['secretary']}>
+      <SecretaryPatients />
+    </ProtectedRoute>
+  }
 />
 <Route
   path="/notifications"

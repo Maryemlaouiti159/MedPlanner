@@ -43,4 +43,21 @@ class DashboardController extends Controller
         $appointment->update(['status' => 'cancelled']);
         return response()->json(['message' => 'Rendez-vous refusé', 'appointment' => $appointment]);
     }
+    public function videoRoom(Request $request, Appointment $appointment)
+    {
+        $doctor = $request->user()->doctorProfile;
+
+        if (!$doctor || $appointment->doctor_id !== $doctor->id) {
+            return response()->json(['message' => 'Accès non autorisé'], 403);
+        }
+
+        if ($appointment->consultation_type !== 'teleconsultation' || !$appointment->video_room_id) {
+            return response()->json(['message' => 'Aucune téléconsultation disponible pour ce rendez-vous.'], 404);
+        }
+
+        return response()->json([
+            'video_room_id' => $appointment->video_room_id,
+            'room_url' => $appointment->video_link,
+        ]);
+    }
 }

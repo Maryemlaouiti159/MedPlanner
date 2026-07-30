@@ -8,6 +8,7 @@ import type { User, AppNotification, Doctor } from '../../types';
 import { useTheme } from '../../context/ThemeContext';
 import { doctorPatientsApi } from '../../api/doctorPatients';
 import type { DoctorPatient } from '../../api/doctorDashboard';
+import { secretaryPatientsApi, type SecretaryPatient } from '../../api/secretaryPatients';
 type TopbarProps = {
   toggleSidebar: () => void;
 };
@@ -35,8 +36,7 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [doctorResults, setDoctorResults] = useState<Doctor[]>([]);
   const [patientResults, setPatientResults] = useState<DoctorPatient[]>([]);
   const [showResults, setShowResults] = useState(false);
-
-  const [showNotifs, setShowNotifs] = useState(false);
+const [secretaryPatientResults, setSecretaryPatientResults] = useState<SecretaryPatient[]>([]);  const [showNotifs, setShowNotifs] = useState(false);
   const [notifs, setNotifs] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
@@ -54,6 +54,7 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
   setResults([]);
   setDoctorResults([]);
   setPatientResults([]);
+   setSecretaryPatientResults([]);
   return;
 }
 
@@ -88,6 +89,23 @@ const [showLogoutModal, setShowLogoutModal] = useState(false);
     })
     .catch(() => setPatientResults([]));
 }
+else if (role === 'secretary') {
+    secretaryPatientsApi.listMine()
+      .then((res) => {
+        const q = query.trim().toLowerCase();
+        const filtered = res.data.filter((p) =>
+          `${p.first_name} ${p.last_name}`.toLowerCase().includes(q) ||
+          (p.email ?? '').toLowerCase().includes(q) ||
+          (p.phone ?? '').toLowerCase().includes(q)
+        );
+        setSecretaryPatientResults(filtered.slice(0, 6));
+      })
+      .catch(() => setSecretaryPatientResults([]));
+  }
+
+
+
+
 }, [role]);
 
   useEffect(() => {
@@ -154,6 +172,13 @@ const confirmLogout = async () => {
   setShowLogoutModal(false);
   await logout();
   navigate('/login');
+};
+const handleSelectSecretaryPatient = (patient: SecretaryPatient) => {
+  setShowResults(false);
+  setSearch('');
+  navigate('/secretary/patients', {
+    state: { selectedPatientId: patient.id },
+  });
 };
   return (
     <header className="app-topbar">
@@ -239,6 +264,42 @@ const confirmLogout = async () => {
     )}
   </div>
 )}
+
+{showResults && role === 'secretary' && search.trim().length >= 2 && (
+  <div className="search-dropdown">
+    {secretaryPatientResults.length === 0 ? (
+      <div className="search-empty">
+        Aucun patient pour "{search}"
+      </div>
+    ) : (
+      secretaryPatientResults.map((patient) => (
+        <div
+          key={patient.id}
+          className="search-result-item"
+          onClick={() => handleSelectSecretaryPatient(patient)}
+        >
+          <div className="search-result-avatar">
+            {patient.first_name[0]}
+            {patient.last_name[0]}
+          </div>
+          <div className="search-result-info">
+            <p>
+              {patient.first_name} {patient.last_name}
+            </p>
+            <span>
+              {patient.phone || patient.email || 'Patient'}
+            </span>
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+)}
+
+
+
+
+
 
       </div>
 

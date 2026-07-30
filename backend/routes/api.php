@@ -78,6 +78,7 @@ Route::middleware('role:doctor')->prefix('doctor')->group(function () {
     Route::patch('/planning/availability/{availability}/toggle-block', [DoctorPlanningController::class, 'toggleBlock']);
 Route::delete('patients/{patient}', [\App\Http\Controllers\Api\Doctor\PatientController::class, 'destroy']);
 Route::get('patients/{patient}', [\App\Http\Controllers\Api\Doctor\PatientController::class, 'show']);
+Route::get('/appointments/{appointment}/video-room', [\App\Http\Controllers\Api\Doctor\DashboardController::class, 'videoRoom']);
 });
 // Dans le groupe auth:sanctum, en dehors de role:admin/doctor :
 Route::middleware('role:patient')->prefix('patient')->group(function () {
@@ -95,6 +96,7 @@ Route::middleware('role:patient')->prefix('patient')->group(function () {
     Route::put('/appointments/{appointment}', [AppointmentController::class, 'update']);
     Route::delete('/appointments/{appointment}/cancel', [AppointmentController::class, 'destroy']);
     Route::delete('/appointments/{appointment}', [AppointmentController::class, 'delete']);
+    Route::get('/appointments/{appointment}/video-room', [AppointmentController::class, 'videoRoom']);
 });
 Route::middleware('role:secretary')->prefix('secretary')->group(function () {
     Route::get('/dashboard', [SecretaryDashboardController::class, 'index']);
@@ -106,6 +108,7 @@ Route::middleware('role:secretary')->prefix('secretary')->group(function () {
     Route::patch('/appointments/{appointment}/reschedule', [SecretaryAppointmentController::class, 'reschedule']);
     Route::patch('/appointments/{appointment}/confirm', [SecretaryAppointmentController::class, 'confirm']);
     Route::patch('/appointments/{appointment}/cancel', [SecretaryAppointmentController::class, 'cancel']);
+    Route::get('/patients/mine', [SecretaryPatientController::class, 'myPatients']);
 
     Route::get('/patients', [SecretaryPatientController::class, 'index']);
     Route::post('/patients', [SecretaryPatientController::class, 'store']);

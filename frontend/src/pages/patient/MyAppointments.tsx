@@ -3,7 +3,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import { patientAppointmentsApi } from '../../api/patientAppointments';
 import type { PatientAppointment } from '../../types';
 import { Search, Edit, Trash2, X } from 'lucide-react';
-
+import { Link } from 'react-router-dom';
 const STATUS_LABELS: Record<string, string> = {
   pending: 'En attente',
   confirmed: 'Confirmé',
@@ -441,29 +441,26 @@ export default function MyAppointments() {
                   </span>
 
                   {/* Bouton "Rejoindre la consultation" — visible uniquement si téléconsultation confirmée avec un lien vidéo */}
-                  {appt.consultation_type === 'teleconsultation' &&
-                    appt.status === 'confirmed' &&
-                    appt.video_link && (
-                      <a
-                        href={appt.video_link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          padding: '6px 12px',
-                          fontSize: '12px',
-                          borderRadius: '8px',
-                          background: '#16a34a',
-                          color: 'white',
-                          fontWeight: 600,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        🎥 Rejoindre la consultation
-                      </a>
-                  )}
+                 {appt.consultation_type === 'teleconsultation' &&
+  appt.status === 'confirmed' && (
+    <Link
+      to={`/appointments/${appt.id}/video-consultation`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '6px 12px',
+        fontSize: '12px',
+        borderRadius: '8px',
+        background: '#16a34a',
+        color: 'white',
+        fontWeight: 600,
+        textDecoration: 'none',
+      }}
+    >
+      🎥 Rejoindre la téléconsultation
+    </Link>
+)}
 
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button

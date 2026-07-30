@@ -55,4 +55,62 @@ class PatientController extends Controller
 
         return response()->json($history);
     }
+
+    /**
+     * Liste des patients ayant au moins un rendez-vous avec le médecin
+     * pour lequel travaille la secrétaire connectée.
+     */
+    public function myPatients(Request $request)
+    {
+        $secretary = Secretary::where('user_id', $request->user()->id)->firstOrFail();
+        $doctorId = $secretary->doctor_id;
+        $today = now()->toDateString();
+
+        $patientIds = Appointment::where('doctor_id', $doctorId)
+            ->distinct()
+            ->pluck('patient_id');
+
+        $patients = $patientIds->map(function ($patientId) use ($doctorId, $today) {
+            $patient = User::find($patientId);
+
+            $appointments = Appointment::where('patient_id', $patientId)
+                ->where('doctor_id', $doctorId)
+                ->with('availability')
+                ->get();
+
+            $lastVisit = $appointments
+                ->filter(fn ($a) => in_array($a->status, ['confirmed', 'completed'])
+                    && $a->availability
+                    && $a->availability->date <= $today)
+                ->sortByDesc(fn ($a) => $a->availability->date)
+                ->first()?->availability;
+
+            $nextVisit = $appointments
+                ->filter(fn ($a) => in_array($a->status, ['pending', 'confirmed'])
+                    && $a->availability
+                    && $a->availability->date >= $today)
+                ->sortBy(fn ($a) => $a->availability->date)
+                ->first()?->availability;
+
+            $conditions = $appointments
+                ->pluck('reason')
+                ->filter()
+                ->unique()
+                ->values();
+
+            return [
+                'id' => $patient->id,
+                'first_name' => $patient->first_name,
+                'last_name' => $patient->last_name,
+                'email' => $patient->email,
+                'phone' => $patient->phone,
+                'total_consultations' => $appointments->count(),
+                'last_visit' => $lastVisit?->date,
+                'next_visit' => $nextVisit?->date,
+                'conditions' => $conditions,
+            ];
+        });
+
+        return response()->json($patients->values());
+    }
 }

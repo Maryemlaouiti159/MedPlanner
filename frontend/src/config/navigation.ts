@@ -32,7 +32,7 @@ export const NAV_ITEMS: Record<UserRole, NavItem[]> = {
   secretary: [
     { label: 'Tableau de bord', path: '/dashboard', icon: '📊' },
     { label: 'Rendez-vous',     path: "/secretary/appointments", icon: '📅' },
-    { label: 'Patients', path: '/patients', icon: '👥' },
+    { label: 'Patients', path: '/secretary/patients', icon: '👥' },
     { label: 'Paramètres', path: '/settings', icon: '⚙️' },
   ],
 };

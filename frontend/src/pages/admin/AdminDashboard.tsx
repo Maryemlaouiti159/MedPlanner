@@ -82,12 +82,6 @@ export default function AdminDashboard() {
         />          
         </div>
       </section>
-
-
-
-
-
-
         {/* Header */}
         
 
@@ -126,8 +120,9 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h3 className="text-sm font-semibold text-slate-900">Évolution des rendez-vous</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Janvier – Juillet 2026</p>
-              </div>
+<p className="text-[11px] text-slate-400 mt-0.5">
+  {data.monthly_appointments[0]?.name} – {data.monthly_appointments[data.monthly_appointments.length - 1]?.name} {new Date().getFullYear()}
+</p>              </div>
               <span className="text-[11px] bg-slate-50 border border-slate-200 px-2.5 py-1 rounded-full text-slate-500 font-medium">
                 {data.monthly_appointments.length} mois
               </span>
@@ -142,8 +137,14 @@ export default function AdminDashboard() {
     </defs>
     <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
     <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-    <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-    <Tooltip
+<YAxis
+  tick={{ fontSize: 11, fill: '#94a3b8' }}
+  axisLine={false}
+  tickLine={false}
+  allowDecimals={false}
+  domain={[0, 1]}
+  ticks={[0, 1]}
+/> <Tooltip
       contentStyle={{ borderRadius: 12, border: '1px solid #e2e8f0', boxShadow: '0 4px 24px #0001', fontSize: 12 }}
     />
     <Area
@@ -241,8 +242,14 @@ export default function AdminDashboard() {
               <BarChart data={data.weekly_appointments} barSize={18}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <Tooltip
+<YAxis
+  tick={{ fontSize: 11, fill: '#94a3b8' }}
+  axisLine={false}
+  tickLine={false}
+  allowDecimals={false}
+  domain={[0, 1]}
+  ticks={[0, 1]}
+/>                <Tooltip
                   contentStyle={{ borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 12 }}
                   cursor={{ fill: '#f8fafc' }}
                 />
