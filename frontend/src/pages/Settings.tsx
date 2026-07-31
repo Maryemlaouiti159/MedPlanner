@@ -8,7 +8,6 @@ import type { AppNotification, NotificationType } from '../types';
 
 type Tab = 'account' | 'notifications' | 'security';
 
-// ─── Constantes ─────────────────────────────────────────────────────────────
 
 const ROLE_LABELS: Record<string, string> = {
   patient: 'Patient',
@@ -28,7 +27,6 @@ const TYPE_META: Record<NotificationType, { label: string; badgeBg: string; badg
 };
 
 
-// ─── Composant principal ─────────────────────────────────────────────────────
 
 export default function Settings() {
   const [searchParams] = useSearchParams();

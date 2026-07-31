@@ -218,8 +218,6 @@ export interface UpdateDoctorData {
 }
 
 
-// Étend Doctor (ajoute juste ce champ à ton interface Doctor existante)
-// next_slot?: NextSlot | null;
 export interface PatientAppointment {
   id: number;
   patient_id: number;
