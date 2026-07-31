@@ -73,7 +73,6 @@ $nextVisit = $appointments
     }
 
     foreach ($appointments as $appointment) {
-        // Libère le créneau associé pour qu'il redevienne disponible
         $appointment->availability?->update(['is_booked' => false]);
         $appointment->delete();
     }

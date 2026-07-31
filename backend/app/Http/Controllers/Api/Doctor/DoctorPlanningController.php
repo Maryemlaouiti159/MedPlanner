@@ -17,7 +17,6 @@ class DoctorPlanningController extends Controller
             ? Carbon::parse($request->query('date'))
             : Carbon::today();
 
-        // Semaine (lundi -> samedi, comme sur la maquette)
         $startOfWeek = $date->copy()->startOfWeek(Carbon::MONDAY);
         $week = [];
         for ($i = 0; $i < 6; $i++) {
@@ -30,13 +29,11 @@ class DoctorPlanningController extends Controller
             ];
         }
 
-        // Créneaux du jour sélectionné
         $availabilities = Availability::where('doctor_id', $doctor->id)
             ->whereDate('date', $date->format('Y-m-d'))
             ->orderBy('start_time')
             ->get(['id', 'date', 'start_time', 'end_time', 'is_booked', 'is_blocked']);
 
-        // RDV du jour sélectionné (via les availabilities réservées)
         $appointments = \App\Models\Appointment::with(['patient', 'availability'])
             ->where('doctor_id', $doctor->id)
             ->whereHas('availability', function ($q) use ($date) {
@@ -55,9 +52,7 @@ class DoctorPlanningController extends Controller
         ]);
     }
 
-    /**
-     * Bloquer ou débloquer un créneau libre (pas de RDV dessus).
-     */
+  
     public function toggleBlock(Request $request, Availability $availability)
     {
         $doctor = $request->user()->doctorProfile;
